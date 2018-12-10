@@ -778,87 +778,78 @@ es自动创建了index，type，以及type对应的mapping(dynamic mapping)
 ```
 {
   "myindex": {
-​    "mappings": {
-​      "article": {
-​        "properties": {
-​          "author_id": {
-​            "type": "long"
-​          },
-​          "content": {
-​            "type": "text",
-​            "fields": {
-​              "keyword": {
-​                "type": "keyword",
-​                "ignore_above": 256
-​              }
-​            }
-​          },
-​          "post_date": {
-​            "type": "date"
-​          },
-​          "title": {
-​            "type": "text",
-​            "fields": {
-​              "keyword": {
-​                "type": "keyword",
-​                "ignore_above": 256
-​              }
-​            }
-​          }
-​        }
-​      }
-​    }
+    "mappings": {
+      "article": {
+        "properties": {
+          "author_id": {
+            "type": "long"
+          },
+          "content": {
+            "type": "text",
+            "fields": {
+              "keyword": {
+                "type": "keyword",
+                "ignore_above": 256
+              }
+            }
+          },
+          "post_date": {
+            "type": "date"
+          },
+          "title": {
+            "type": "text",
+            "fields": {
+              "keyword": {
+                "type": "keyword",
+                "ignore_above": 256
+              }
+            }
+          }
+        }
+      }
+    }
   }
 }
 ```
 创建索引的时候,可以预先定义字段的类型以及相关属性，这样就能够把日期字段处理成日期，把数字字段处理成数字，把字符串字段处理字符串值等
 
-支持的数据类型：
+#### 支持的数据类型：
 
 (1)核心数据类型（Core datatypes）
+> 字符型：string，string类型包括text 和 keyword
+  最主要区别：text会被分词，keyword不会被分词
+  text类型被用来索引长文本，在建立索引前会将这些文本进行分词，转化为词的组合，建立索引。允许es来检索这些词语。text类型不能用来排序和聚合。
+  Keyword类型不需要进行分词，可以被用来检索过滤、排序和聚合。keyword 类型字段只能用本身来进行检索
 
-    字符型：string，string类型包括
-    text 和 keyword
-    
-    text类型被用来索引长文本，在建立索引前会将这些文本进行分词，转化为词的组合，建立索引。允许es来检索这些词语。text类型不能用来排序和聚合。
-    
-    Keyword类型不需要进行分词，可以被用来检索过滤、排序和聚合。keyword 类型字段只能用本身来进行检索
-    
-    数字型：long, integer, short, byte, double, float
-    日期型：date
-    布尔型：boolean
-    二进制型：binary
-
-
-  ​    
+> 数字型：long, integer, short, byte, double, float
+  日期型：date
+  布尔型：boolean
+  二进制型：binary
 
 (2)复杂数据类型（Complex datatypes）
-
-    数组类型（Array datatype）：数组类型不需要专门指定数组元素的type，例如：
-        字符型数组: [ "one", "two" ]
-        整型数组：[ 1, 2 ]
-        数组型数组：[ 1, [ 2, 3 ]] 等价于[ 1, 2, 3 ]
-        对象数组：[ { "name": "Mary", "age": 12 }, { "name": "John", "age": 10 }]
-    对象类型（Object datatype）：_ object _ 用于单个JSON对象；
-    嵌套类型（Nested datatype）：_ nested _ 用于JSON数组；
+> 数组类型（Array datatype）：数组类型不需要专门指定数组元素的type，例如：
+ 字符型数组: [ "one", "two" ]
+ 整型数组：[ 1, 2 ]
+ 数组型数组：[ 1, [ 2, 3 ]] 等价于[ 1, 2, 3 ]
+ 对象数组：[ { "name": "Mary", "age": 12 }, { "name": "John", "age": 10 }]
+ 对象类型（Object datatype）：_ object _ 用于单个JSON对象；
+ 嵌套类型（Nested datatype）：_ nested _ 用于JSON数组；
 
 (3)地理位置类型（Geo datatypes）
-
-    地理坐标类型（Geo-point datatype）：_ geo_point _ 用于经纬度坐标；
-    地理形状类型（Geo-Shape datatype）：_ geo_shape _ 用于类似于多边形的复杂形状；
+> 地理坐标类型（Geo-point datatype）：_ geo_point _ 用于经纬度坐标；
+  地理形状类型（Geo-Shape datatype）：_ geo_shape _ 用于类似于多边形的复杂形状；
 
 (4)特定类型（Specialised datatypes）
+> IPv4 类型（IPv4 datatype）：_ ip _ 用于IPv4 地址；
+  Completion 类型（Completion datatype）：_ completion _提供自动补全建议；
+  Token count 类型（Token count datatype）：_ token_count _ 用于统计做了标记的字段的index数目，该值会一直增加，不会因为过滤条件而减少。
+  mapper-murmur3
+  类型：通过插件，可以通过 _ murmur3 _ 来计算 index 的 hash 值；
+  附加类型（Attachment datatype）：采用 mapper-attachments
+  插件，可支持_ attachments _ 索引，例如 Microsoft Office 格式，Open Document 格式，ePub, HTML 等。
 
-    IPv4 类型（IPv4 datatype）：_ ip _ 用于IPv4 地址；
-    Completion 类型（Completion datatype）：_ completion _提供自动补全建议；
-    Token count 类型（Token count datatype）：_ token_count _ 用于统计做了标记的字段的index数目，该值会一直增加，不会因为过滤条件而减少。
-    mapper-murmur3
-    类型：通过插件，可以通过 _ murmur3 _ 来计算 index 的 hash 值；
-    附加类型（Attachment datatype）：采用 mapper-attachments
-    插件，可支持_ attachments _ 索引，例如 Microsoft Office 格式，Open Document 格式，ePub, HTML 等。
-
-支持的属性：
-
+#### 支持的属性：
+```
 "store":false//是否单独设置此字段的是否存储而从_source字段中分离，默认是false，只能搜索，不能获取值
 
 "index": true//分词，不分词是：false
@@ -873,7 +864,7 @@ es自动创建了index，type，以及type对应的mapping(dynamic mapping)
 "fielddata":{"format":"disabled"}//针对分词字段，参与排序或聚合时能提高性能，不分词字段统一建议使用doc_value
 
 "fields":{"raw":{"type":"string","index":"not_analyzed"}} //可以对一个字段提供多种索引模式，同一个字段的值，一个分词，一个不分词
-​            
+       
 "ignore_above":100 //超过100个字符的文本，将会被忽略，不被索引
 
 "include_in_all":ture//设置是否此字段包含在_all字段中，默认是true，除非index设置成no选项
@@ -891,9 +882,8 @@ es自动创建了index，type，以及type对应的mapping(dynamic mapping)
 "similarity":"BM25"//默认是TF/IDF算法，指定一个字段评分策略，仅仅对字符串型和分词类型有效
 
 "term_vector":"no"//默认不存储向量信息，支持参数yes（term存储），with_positions（term+位置）,with_offsets（term+偏移量），with_positions_offsets(term+位置+偏移量) 对快速高亮fast vector highlighter能提升性能，但开启又会加大索引体积，不适合大数据量用
-
-
-映射的分类：
+```
+#### 映射的分类：
 
 (1)动态映射：
 
@@ -906,64 +896,42 @@ es自动创建了index，type，以及type对应的mapping(dynamic mapping)
     strict：如果碰到陌生字段，抛出异常
 
 dynamic设置可以适用在根对象上或者object类型的任意字段上。
-
+给索引lib2创建映射类型
+```
 POST /lib2
-
-#给索引lib2创建映射类型
-
 {
-
     "settings":{
-    
     "number_of_shards" : 3,
-    
     "number_of_replicas" : 0
-    
     },
-    
      "mappings":{
-     
       "books":{
-      
         "properties":{
-        
             "title":{"type":"text"},
             "name":{"type":"text","index":false},
             "publish_date":{"type":"date","index":false},
-            
             "price":{"type":"double"},
-            
             "number":{"type":"integer"}
         }
       }
      }
 }
-
+```
+给索引lib2创建映射类型
+```
 POST /lib2
-
-#给索引lib2创建映射类型
 {
-
     "settings":{
-    
     "number_of_shards" : 3,
-    
     "number_of_replicas" : 0
-    
     },
-    
      "mappings":{
-     
       "books":{
-      
         "properties":{
-        
             "title":{"type":"text"},
             "name":{"type":"text","index":false},
             "publish_date":{"type":"date","index":false},
-            
             "price":{"type":"double"},
-            
             "number":{
                 "type":"object",
                 "dynamic":true
@@ -972,147 +940,141 @@ POST /lib2
       }
      }
 }
-
+```
 ### 2.7基本查询(Query查询)
 
 #### 2.7.1数据准备
-
+```
 PUT /lib3
 {
-​    "settings":{
-​    "number_of_shards" : 3,
-​    "number_of_replicas" : 0
-​    },
-​     "mappings":{
-​      "user":{
-​        "properties":{
-​            "name": {"type":"text"},
-​            "address": {"type":"text"},
-​            "age": {"type":"integer"},
-​            "interests": {"type":"text"},
-​            "birthday": {"type":"date"}
-​        }
-​      }
-​     }
+    "settings":{
+    "number_of_shards" : 3,
+    "number_of_replicas" : 0
+    },
+     "mappings":{
+      "user":{
+        "properties":{
+            "name": {"type":"text"},
+            "address": {"type":"text"},
+            "age": {"type":"integer"},
+            "interests": {"type":"text"},
+            "birthday": {"type":"date"}
+        }
+      }
+     }
 }
-
 GET /lib3/user/_search?q=name:lisi
-
 GET /lib3/user/_search?q=name:zhaoliu&sort=age:desc
-
+```
 #### 2.7.2 term查询和terms查询
 
 term query会去倒排索引中寻找确切的term，它并不知道分词器的存在。这种查询适合keyword 、numeric、date。
 
 term:查询某个字段里含有某个关键词的文档
-
+```
 GET /lib3/user/_search/
 {
   "query": {
-​      "term": {"interests": "changge"}
+      "term": {"interests": "changge"}
   }
 }
-
+```
 terms:查询某个字段里含有多个关键词的文档
-
-
-
+```
 GET /lib3/user/_search
 {
-​    "query":{
-​        "terms":{
-​            "interests": ["hejiu","changge"]
-​        }
-​    }
+    "query":{
+        "terms":{
+            "interests": ["hejiu","changge"]
+       }
+   }
 }
-
+```
 #### 2.7.3 控制查询返回的数量
 
 from：从哪一个文档开始
 size：需要的个数
-
+```
 GET /lib3/user/_search
 {
-​    "from":0,
-​    "size":2,
-​    "query":{
-​        "terms":{
-​            "interests": ["hejiu","changge"]
-​        }
-​    }
+    "from":0,
+    "size":2,
+    "query":{
+        "terms":{
+            "interests": ["hejiu","changge"]
+        }
+    }
 }
-
-
+```
 #### 2.7.4 返回版本号
-
+```
 GET /lib3/user/_search
 {
-​    "version":true,
-​    "query":{
-​        "terms":{
-​            "interests": ["hejiu","changge"]
-​        }
-​    }
+    "version":true,
+    "query":{
+        "terms":{
+            "interests": ["hejiu","changge"]
+        }
+    }
 }
+```
 #### 2.7.5 match查询
 
 match query知道分词器的存在，会对filed进行分词操作，然后再查询
-
+```
 GET /lib3/user/_search
 {
-​    "query":{
-​        "match":{
-​            "name": "zhaoliu"
-​        }
-​    }
+    "query":{
+        "match":{
+            "name": "zhaoliu"
+        }
+    }
 }
 
 GET /lib3/user/_search
 {
-​    "query":{
-​        "match":{
-​            "age": 20
-​        }
-​    }
+    "query":{
+        "match":{
+            "age": 20
+        }
+    }
 }
-
+```
 
 match_all:查询所有文档
-
+```
 GET /lib3/user/_search
 {
   "query": {
-​    "match_all": {}
+    "match_all": {}
   }
 }
-
-
+```
 multi_match:可以指定多个字段
-
+```
 GET /lib3/user/_search
 {
-​    "query":{
-​        "multi_match": {
-​            "query": "lvyou",
-​            "fields": ["interests","name"]
-​         }
-​    }
+    "query":{
+        "multi_match": {
+            "query": "lvyou",
+            "fields": ["interests","name"]
+         }
+    }
 }
-
+```
 match_phrase:短语匹配查询
 
 ElasticSearch引擎首先分析（analyze）查询字符串，从分析后的文本中构建短语查询，这意味着必须匹配短语中的所有分词，并且保证各个分词的相对位置不变：
-
+```
 GET lib3/user/_search
 {
   "query":{  
-​      "match_phrase":{  
-​         "interests": "duanlian，shuoxiangsheng"
-​      }
+      "match_phrase":{  
+         "interests": "duanlian，shuoxiangsheng"
+      }
    }
 }
-
-
+```
 #### 2.7.6 指定返回的字段
 
 GET /lib3/user/_search
@@ -1289,7 +1251,7 @@ GET /lib3/user/_search
 ​        }
 ​    }
 }
-
+```
 GET /lib3/user/_search
 {
 ​    "query": {
@@ -1300,7 +1262,7 @@ GET /lib3/user/_search
 ​        }
 ​    }
 }
-
+```
 #### 2.7.13 高亮搜索结果
 
 GET /lib3/user/_search

@@ -739,7 +739,7 @@ PUT /lib/user/1?version=999&version_type=external
 
 ### 2.6 什么是Mapping
 
-```
+```shell
 PUT /myindex/article/1 
 { 
   "post_date": "2018-05-10", 
@@ -764,18 +764,30 @@ PUT /myindex/article/3
   "author_id": 110
 }
 
+# 查不出来，mapping后成了日期格式，不会被分词
 GET /myindex/article/_search?q=2018-05
 GET /myindex/article/_search?q=2018-05-10
 GET /myindex/article/_search?q=html
 GET /myindex/article/_search?q=java
+
+# 可以限制字段来查询
+GET /myindex/article/_search?q=post_date:2018-05
+GET /myindex/article/_search?q=post_date:2018-05-10
+GET /myindex/article/_search?q=content:html
+GET /myindex/article/_search?q=content:java
+
+# 查询所有
+GET /myindex/article/_search
 ```
 #查看es自动创建的mapping
+
 ```
 GET /myindex/article/_mapping
 ```
 es自动创建了index，type，以及type对应的mapping(dynamic mapping)
 什么是映射：mapping定义了type中的每个字段的数据类型以及这些字段如何分词等相关属性
-```
+
+```shell
 {
   "myindex": {
     "mappings": {
@@ -849,19 +861,19 @@ es自动创建了index，type，以及type对应的mapping(dynamic mapping)
   插件，可支持_ attachments _ 索引，例如 Microsoft Office 格式，Open Document 格式，ePub, HTML 等。
 
 #### 支持的属性：
-```
-"store":false//是否单独设置此字段的是否存储而从_source字段中分离，默认是false，只能搜索，不能获取值
 
-"index": true//分词，不分词是：false
-   ，设置成false，字段将不会被索引
+```shell
+"store":false  //是否单独设置此字段的是否存储而从_source字段中分离，默认是false，只能搜索，不能获取值
 
-"analyzer":"ik"//指定分词器,默认分词器为standard analyzer
+"index": true  // 分词，不分词是：false，设置成false，字段将不会被索引,默认每个都会创建索引
 
-"boost":1.23//字段级别的分数加权，默认值是1.0
+"analyzer":"ik"  // 指定分词器,默认分词器为standard analyzer
 
-"doc_values":false//对not_analyzed字段，默认都是开启，分词字段不能使用，对排序和聚合能提升较大性能，节约内存
+"boost":1.23  // 字段级别的分数加权，默认值是1.0
 
-"fielddata":{"format":"disabled"}//针对分词字段，参与排序或聚合时能提高性能，不分词字段统一建议使用doc_value
+"doc_values":false  // 对not_analyzed字段，默认都是开启，分词字段不能使用，对排序和聚合能提升较大性能，节约内存
+
+"fielddata":{"format":"disabled"}  // 针对分词字段，参与排序或聚合时能提高性能，不分词字段统一建议使用doc_value
 
 "fields":{"raw":{"type":"string","index":"not_analyzed"}} //可以对一个字段提供多种索引模式，同一个字段的值，一个分词，一个不分词
        
@@ -897,7 +909,7 @@ es自动创建了index，type，以及type对应的mapping(dynamic mapping)
 
 dynamic设置可以适用在根对象上或者object类型的任意字段上。
 给索引lib2创建映射类型
-```
+```shell
 POST /lib2
 {
     "settings":{
@@ -918,7 +930,7 @@ POST /lib2
 }
 ```
 给索引lib2创建映射类型
-```
+```shell
 POST /lib2
 {
     "settings":{
@@ -944,7 +956,7 @@ POST /lib2
 ### 2.7基本查询(Query查询)
 
 #### 2.7.1数据准备
-```
+```shell
 PUT /lib3
 {
     "settings":{
@@ -963,15 +975,44 @@ PUT /lib3
       }
      }
 }
+
+PUT lib3/user/1
+{
+  "name":"zhang san",
+  "address": "shatian",
+  "age":18,
+  "interests": "drink,dance",
+  "birthday": "2018-05-21"
+}
+PUT lib3/user/2
+{
+  "name":"li si",
+  "address": "tongfan",
+  "age":28,
+  "interests": "shopping",
+  "birthday": "2000-01-21"
+}
+PUT lib3/user/3
+{
+  "name":"wang wu",
+  "address": "guangfeng",
+  "age":20,
+  "interests": "reading,drink,dance",
+  "birthday": "2015-05-21"
+}
+
 GET /lib3/user/_search?q=name:lisi
-GET /lib3/user/_search?q=name:zhaoliu&sort=age:desc
+GET /lib3/user/_search?q=name:zhaoliu&sort=age:desc   # 排序字段是long或者integer等数值
 ```
 #### 2.7.2 term查询和terms查询
 
-term query会去倒排索引中寻找确切的term，它并不知道分词器的存在。这种查询适合keyword 、numeric、date。
+term query会去倒排索引中寻找确切的term，它并不知道分词器的存在。这种查询适合keyword 、numeric、date没有分词的。【直接查name没有结果，因为name是text，term中输入的词不会被分词，match会被分词】
 
 term:查询某个字段里含有某个关键词的文档
-```
+
+> 精确查找，*term中的field不能有空格等*,因为倒排索引后都是一堆的词，而不是短语，（短语使用match_phrase），所以如果字段内容是：a,b,c  ，使用term去查b,c 肯定是查不到的。因为term中field不会被分词，那么就是说需要匹配b,c整体，但是a,b,c被拆分了a   b   c  所以匹配不到。
+
+```shell
 GET /lib3/user/_search/
 {
   "query": {
@@ -980,7 +1021,7 @@ GET /lib3/user/_search/
 }
 ```
 terms:查询某个字段里含有多个关键词的文档
-```
+```shell
 GET /lib3/user/_search
 {
     "query":{
@@ -994,11 +1035,12 @@ GET /lib3/user/_search
 
 from：从哪一个文档开始
 size：需要的个数
-```
+
+```shell
 GET /lib3/user/_search
 {
-    "from":0,
-    "size":2,
+    "from":0,    # 从哪个开始
+    "size":2,    # 取几个
     "query":{
         "terms":{
             "interests": ["hejiu","changge"]
@@ -1007,10 +1049,11 @@ GET /lib3/user/_search
 }
 ```
 #### 2.7.4 返回版本号
-```
+
+```shell
 GET /lib3/user/_search
 {
-    "version":true,
+    "version":true,   # 默认没有版本号
     "query":{
         "terms":{
             "interests": ["hejiu","changge"]
@@ -1021,7 +1064,7 @@ GET /lib3/user/_search
 #### 2.7.5 match查询
 
 match query知道分词器的存在，会对filed进行分词操作，然后再查询
-```
+```shell
 GET /lib3/user/_search
 {
     "query":{
@@ -1030,7 +1073,6 @@ GET /lib3/user/_search
         }
     }
 }
-
 GET /lib3/user/_search
 {
     "query":{
@@ -1040,9 +1082,8 @@ GET /lib3/user/_search
     }
 }
 ```
-
 match_all:查询所有文档
-```
+```shell
 GET /lib3/user/_search
 {
   "query": {
@@ -1051,7 +1092,7 @@ GET /lib3/user/_search
 }
 ```
 multi_match:可以指定多个字段
-```
+```shell
 GET /lib3/user/_search
 {
     "query":{
@@ -1065,7 +1106,7 @@ GET /lib3/user/_search
 match_phrase:短语匹配查询
 
 ElasticSearch引擎首先分析（analyze）查询字符串，从分析后的文本中构建短语查询，这意味着必须匹配短语中的所有分词，并且保证各个分词的相对位置不变：
-```
+```shell
 GET lib3/user/_search
 {
   "query":{  
@@ -1076,536 +1117,558 @@ GET lib3/user/_search
 }
 ```
 #### 2.7.6 指定返回的字段
-
+```shell
 GET /lib3/user/_search
 {
-​    "_source": ["address","name"],
-​    "query": {
-​        "match": {
-​            "interests": "changge"
-​        }
-​    }
+    "_source": ["address","name"],
+    "query": {
+        "match": {
+            "interests": "changge"
+        }
+    }
 }
-
+```
 
 #### 2.7.7控制加载的字段
-
+```shell
 GET /lib3/user/_search
 {
-​    "query": {
-​        "match_all": {}
-​    },
-​    
-​    "_source": {
-​          "includes": ["name","address"],
-​          "excludes": ["age","birthday"]
-​      }
+    "query": {
+        "match_all": {}
+    },
+    
+    "_source": {
+          "includes": ["name","address"],  # 包含的字段
+          "excludes": ["age","birthday"]   # 排除的字段
+      }
 }
-
-
-使用通配符*
-
+```
+使用通配符  \* 
+```shell
 GET /lib3/user/_search
 {
-​    "_source": {
-​          "includes": "addr*",
-​          "excludes": ["name","bir*"]
-​        
-​    },
-​    "query": {
-​        "match_all": {}
-​    }
+    "_source": {
+          "includes": "addr*",
+          "excludes": ["name","bir*"]
+        
+    },
+    "query": {
+        "match_all": {}
+    }
 }
-
+```
 #### 2.7.8 排序
 
 使用sort实现排序：
 desc:降序，asc升序
 
-
+```shell
 GET /lib3/user/_search
 {
-​    "query": {
-​        "match_all": {}
-​    },
-​    "sort": [
-​        {
-​           "age": {
-​               "order":"asc"
-​           }
-​        }
-​    ]
-​        
+    "query": {
+        "match_all": {}
+    },
+    "sort": [
+        {
+           "age": {
+               "order":"asc"
+           }
+        }
+    ]
 }
 
 GET /lib3/user/_search
 {
-​    "query": {
-​        "match_all": {}
-​    },
-​    "sort": [
-​        {
-​           "age": {
-​               "order":"desc"
-​           }
-​        }
-​    ]
-​        
+    "query": {
+        "match_all": {}
+    },
+    "sort": [
+        {
+           "age": {
+               "order":"desc"
+           }
+        }
+    ]
 }
-
+```
 #### 2.7.9 前缀匹配查询
 
+```shell
 GET /lib3/user/_search
 {
   "query": {
-​    "match_phrase_prefix": {
-​        "name": {
-​            "query": "zhao"
-​        }
-​    }
+    "match_phrase_prefix": {
+        "name": {
+            "query": "zhao"   # 匹配一个词的前缀
+        }
+    }
   }
 }
-
+```
 #### 2.7.10 范围查询
 
 range:实现范围查询
+参数：
 
-参数：from,to,include_lower,include_upper,boost
+​	from,to：这2个默认包含边界
 
-include_lower:是否包含范围的左边界，默认是true
+​	gte：大于等于，gt大于；
 
-include_upper:是否包含范围的右边界，默认是true
+​	lte ：小于等于，lt小于；
+
+​	include_lower:是否包含范围的左边界，默认是true
+
+​	include_upper:是否包含范围的右边界，默认是true
+
+```sh
+GET /lib3/user/_search
+{
+    "query": {
+        "range": {
+            "birthday": {
+                "from": "1990-10-10",
+                "to": "2018-05-01"
+            }
+        }
+    }
+}
 
 GET /lib3/user/_search
 {
-​    "query": {
-​        "range": {
-​            "birthday": {
-​                "from": "1990-10-10",
-​                "to": "2018-05-01"
-​            }
-​        }
-​    }
+    "query": {
+        "range": {
+            "age": {
+                "from": 20,
+                "to": 25,
+                "include_lower": true,
+                "include_upper": false
+            }
+        }
+    }
 }
 
-
-GET /lib3/user/_search
-{
-​    "query": {
-​        "range": {
-​            "age": {
-​                "from": 20,
-​                "to": 25,
-​                "include_lower": true,
-​                "include_upper": false
-​            }
-​        }
-​    }
-}
-
-
-#### 2.7.11 wildcard查询
-
+```
+#### 2.7.11 wildcard查询（wildcard中文：通配符）
 允许使用通配符* 和 ?来进行查询
-
 *代表0个或多个字符
-
 ？代表任意一个字符
-
+```shell
 GET /lib3/user/_search
 {
-​    "query": {
-​        "wildcard": {
-​             "name": "zhao*"
-​        }
-​    }
+    "query": {
+        "wildcard": {
+             "name": "zhao*"
+        }
+    }
 }
-
-
 GET /lib3/user/_search
 {
-​    "query": {
-​        "wildcard": {
-​             "name": "li?i"
-​        }
-​    }
-}
-
-#### 2.7.12 fuzzy实现模糊查询
-
-value：查询的关键字
-
-boost：查询的权值，默认值是1.0
-
-min_similarity:设置匹配的最小相似度，默认值为0.5，对于字符串，取值为0-1(包括0和1);对于数值，取值可能大于1;对于日期型取值为1d,1m等，1d就代表1天
-
-prefix_length:指明区分词项的共同前缀长度，默认是0
-
-max_expansions:查询中的词项可以扩展的数目，默认可以无限大
-
-GET /lib3/user/_search
-{
-​    "query": {
-​        "fuzzy": {
-​             "interests": "chagge"
-​        }
-​    }
+    "query": {
+        "wildcard": {
+             "name": "li?i"
+        }
+    }
 }
 ```
+#### 2.7.12 fuzzy实现模糊查询，性能低
+
+value：查询的关键字
+boost：查询的权值，默认值是1.0
+
+fuzziness :[参考](https://www.elastic.co/guide/en/elasticsearch/reference/6.2/common-options.html#fuzziness)，默认0.5，填写“auto”，或者>5表示能编辑2次，老实说，没太明白……，估计也不常用吧
+
+prefix_length:指明区分词项的共同前缀长度，默认是0，前缀必须匹配串的长度
+
+max_expansions:查询中的词项可以扩展的数目，默认可以无限大
+```shell
 GET /lib3/user/_search
 {
-​    "query": {
-​        "fuzzy": {
-​             "interests": {
-​                 "value": "chagge"
-​             }
-​        }
-​    }
+    "query": {
+        "fuzzy": {
+             "interests": "chagge"
+        }
+    }
+}
+
+GET /lib3/user/_search
+{
+    "query": {
+        "fuzzy": {
+             "interests": {
+                 "value": "chagge"
+             }
+        }
+    }
 }
 ```
 #### 2.7.13 高亮搜索结果
 
+```shell
 GET /lib3/user/_search
 {
-​    "query":{
-​        "match":{
-​            "interests": "changge"
-​        }
-​    },
-​    "highlight": {
-​        "fields": {
-​             "interests": {}
-​        }
-​    }
+    "query":{
+        "match":{
+            "interests": "changge"
+        }
+    },
+    "highlight": {
+        "fields": {
+             "interests": {}
+        }
+    }
 }
+```
+#### 2.7.14 boost提升权重
 
+创建mapping时，将title的权重设置为普通的2倍，那么最终匹配的得分会受影响，以达到获取用户想要的排名结果。
+```shell
+#设置mapping时设定。
+PUT my_index
+{
+  "mappings": {
+    "_doc": {
+      "properties": {
+        "title": {
+          "type": "text",
+          "boost": 2     # 将title的值匹配的权重设置为普通的2倍
+        },
+        "content": {
+          "type": "text"
+        }
+      }
+    }
+  }
+}
+#查询时设定：
+GET lib3/user/_search
+{
+  "query": {
+    "match": {
+      "name": {
+        "query": "zhan si san",
+        "boost":"2"    # 查询提升匹配的分值_score
+      }
+    }
+  }
+}
+```
 
 ### 2.8 Filter查询
 
 filter是不计算相关性的，同时可以cache。因此，filter速度要快于query。
-
+```shell
 POST /lib4/items/_bulk
 {"index": {"_id": 1}}
-
 {"price": 40,"itemID": "ID100123"}
-
 {"index": {"_id": 2}}
-
 {"price": 50,"itemID": "ID100124"}
-
 {"index": {"_id": 3}}
-
 {"price": 25,"itemID": "ID100124"}
-
 {"index": {"_id": 4}}
-
 {"price": 30,"itemID": "ID100125"}
-
 {"index": {"_id": 5}}
-
 {"price": null,"itemID": "ID100127"}
-
+```
 ####2.8.1 简单的过滤查询
-
+```shell
 GET /lib4/items/_search
 { 
-​       "post_filter": {
-​             "term": {
-​                 "price": 40
-​             }
-​       }
-}
-
-
-GET /lib4/items/_search
-{
-​      "post_filter": {
-​          "terms": {
-​                 "price": [25,40]
-​              }
-​        }
+       "post_filter": {
+             "term": {
+                 "price": 40
+             }
+       }
 }
 
 GET /lib4/items/_search
 {
-​    "post_filter": {
-​        "term": {
-​            "itemID": "ID100123"
-​          }
-​      }
+      "post_filter": {
+          "terms": {
+                 "price": [25,40]
+              }
+        }
 }
 
+GET /lib4/items/_search
+{
+    "post_filter": {
+        "term": {
+            "itemID": "ID100123"  # 这里无法查询出来，因为itemId是text类型会被分词，分词后存储为小写，所以这里有2种处理办法，第一种，把id改为小写：id100123，第二种设置字段index：false
+          }
+      }
+}
+```
 查看分词器分析的结果：
 
 GET /lib4/_mapping
 
 
 不希望商品id字段被分词，则重新创建映射
-
+```
 DELETE lib4
 
 PUT /lib4
 {
-​    "mappings": {
-​        "items": {
-​            "properties": {
-​                "itemID": {
-​                    "type": "text",
-​                    "index": false
-​                }
-​            }
-​        }
-​    }
+    "mappings": {
+        "items": {
+            "properties": {
+                "itemID": {
+                    "type": "text",
+                    "index": false
+                }
+            }
+        }
+    }
 }
-
+```
 #### 2.8.2 bool过滤查询
 
 可以实现组合过滤查询
 
 格式：
-
+```shell
 {
-​    "bool": {
-​        "must": [],
-​        "should": [],
-​        "must_not": []
-​    }
+    "bool": {
+        "must": [],
+        "should": [],
+        "must_not": []
+    }
 }
-
+```
 must:必须满足的条件---and
+
+filter 不must不同，filter分值被忽略，过滤器字句在过滤器上下文执行，
 
 should：可以满足也可以不满足的条件--or
 
 must_not:不需要满足的条件--not
-
+```shell
 GET /lib4/items/_search
 {
-​    "post_filter": {
-​          "bool": {
-​               "should": [
-​                    {"term": {"price":25}},
-​                    {"term": {"itemID": "id100123"}}
-​                   
-​                  ],
-​                "must_not": {
-​                    "term":{"price": 30}
-​                   }
-​                       
-​                }
-​             }
+    "post_filter": {
+          "bool": {
+               "should": [
+                    {"term": {"price":25}},
+                    {"term": {"itemID": "id100123"}}
+                   
+                  ],
+                "must_not": {
+                    "term":{"price": 30}
+                   }
+                       
+                }
+             }
 }
-
+```
 嵌套使用bool：
-
+```shell
 GET /lib4/items/_search
 {
-​    "post_filter": {
-​          "bool": {
-​                "should": [
-​                    {"term": {"itemID": "id100123"}},
-​                    {
-​                      "bool": {
-​                          "must": [
-​                              {"term": {"itemID": "id100124"}},
-​                              {"term": {"price": 40}}
-​                            ]
-​                          }
-​                    }
-​                  ]
-​                }
-​            }
+    "post_filter": {
+          "bool": {
+                "should": [
+                    {"term": {"itemID": "id100123"}},
+                    {
+                      "bool": {
+                          "must": [
+                              {"term": {"itemID": "id100124"}},
+                              {"term": {"price": 40}}
+                            ]
+                          }
+                    }
+                  ]
+                }
+            }
 }
-​        
+```
 #### 2.8.3 范围过滤
-
+```shell
 gt: >
-
 lt: <
-
 gte: >=
-
 lte: <=
-
+```
+```shell
 GET /lib4/items/_search
 {
-​     "post_filter": {
-​          "range": {
-​              "price": {
-​                   "gt": 25,
-​                   "lt": 50
-​                }
-​            }
-​      }
+     "post_filter": {
+          "range": {
+              "price": {
+                   "gt": 25,
+                   "lt": 50
+                }
+            }
+      }
 }
+```
 #### 2.8.5 过滤非空
 
-
+```shell
 GET /lib4/items/_search
 {
   "query": {
-​    "bool": {
-​      "filter": {
-​          "exists":{
-​             "field":"price"
-​         }
-​      }
-​    }
+    "bool": {
+      "filter": {
+          "exists":{
+             "field":"price"
+         }
+      }
+    }
   }
 }
 
 GET /lib4/items/_search
 {
-​    "query" : {
-​        "constant_score" : {
-​            "filter": {
-​                "exists" : { "field" : "price" }
-​            }
-​        }
-​    }
+    "query" : {
+        "constant_score" : {
+            "filter": {
+                "exists" : { "field" : "price" }
+            }
+        }
+    }
 }
-
+```
 #### 2.8.6 过滤器缓存
 
 ElasticSearch提供了一种特殊的缓存，即过滤器缓存（filter cache），用来存储过滤器的结果，被缓存的过滤器并不需要消耗过多的内存（因为它们只存储了哪些文档能与过滤器相匹配的相关信息），而且可供后续所有与之相关的查询重复使用，从而极大地提高了查询性能。
 
 注意：ElasticSearch并不是默认缓存所有过滤器，
+
+```powershell
 以下过滤器默认不缓存：
+numeric_range
+script
+geo_bbox
+geo_distance
+geo_distance_range
+geo_polygon
+geo_shape
+and
+or
+not
 
-    numeric_range
-    script
-    geo_bbox
-    geo_distance
-    geo_distance_range
-    geo_polygon
-    geo_shape
-    and
-    or
-    not
-
-exists,missing,range,term,terms默认是开启缓存的
-
+以下默认是开启缓存：
+exists,missing,range,term,terms
+```
 开启方式：在filter查询语句后边加上
+```shell
 "_catch":true
-
+```
 ### 2.9 聚合查询
 
 (1)sum
-
+```shell
 GET /lib4/items/_search
 {
   "size":0,
   "aggs": {
-​     "price_of_sum": {
-​         "sum": {
-​           "field": "price"
-​         }
-​     }
+     "price_of_sum": {
+         "sum": {
+           "field": "price"
+         }
+     }
   }
 }
-
+```
 (2)min
-
+```shell
 GET /lib4/items/_search
 {
   "size": 0, 
   "aggs": {
-​     "price_of_min": {
-​         "min": {
-​           "field": "price"
-​         }
-​     }
+     "price_of_min": {
+         "min": {
+           "field": "price"
+         }
+     }
   }
 }
-
+```
 (3)max
-
+```shell
 GET /lib4/items/_search
 {
   "size": 0, 
   "aggs": {
-​     "price_of_max": {
-​         "max": {
-​           "field": "price"
-​         }
-​     }
+     "price_of_max": {
+         "max": {
+           "field": "price"
+         }
+     }
   }
 }
-
+```
 (4)avg
-
+```shell
 GET /lib4/items/_search
 {
   "size":0,
   "aggs": {
-​     "price_of_avg": {
-​         "avg": {
-​           "field": "price"
-​         }
-​     }
+     "price_of_avg": {
+         "avg": {
+           "field": "price"
+         }
+     }
   }
 }
-
-(5)cardinality:求基数
-
+```
+(5)cardinality:求基数，互不相同的数，类似distinct，不包含null。（null，1，2，3，基数为3）
+```shell
 GET /lib4/items/_search
 {
   "size":0,
   "aggs": {
-​     "price_of_cardi": {
-​         "cardinality": {
-​           "field": "price"
-​         }
-​     }
+     "price_of_cardi": {
+         "cardinality": {
+           "field": "price"
+         }
+     }
   }
 }
-
+```
 (6)terms:分组
-
+```shell
 GET /lib4/items/_search
 {
   "size":0,
   "aggs": {
-​     "price_group_by": {
-​         "terms": {
-​           "field": "price"
-​         }
-​     }
+     "price_group_by": {
+         "terms": {
+           "field": "price"
+         }
+     }
   }
 }
-
+```
 对那些有唱歌兴趣的用户按年龄分组
+```shell
 GET /lib3/user/_search
 {
   "query": {
-​      "match": {
-​        "interests": "changge"
-​      }
+      "match": {
+        "interests": "changge"
+      }
    },
    "size": 0, 
    "aggs":{
-​       "age_group_by":{
-​           "terms": {
-​             "field": "age",
-​             "order": {
-​               "avg_of_age": "desc"
-​             }
-​           },
-​           "aggs": {
-​             "avg_of_age": {
-​               "avg": {
-​                 "field": "age"
-​               }
-​             }
-​           }
-​       }
+       "age_group_by":{
+           "terms": {
+             "field": "age",
+             "order": {
+               "avg_of_age": "desc"
+             }
+           },
+           "aggs": {
+             "avg_of_age": {
+               "avg": {
+                 "field": "age"
+               }
+             }
+           }
+       }
    }
 }
-
-
-
-
-
-
+```
 ### 2.10 复合查询
 
 将多个基本查询组合成单一查询的查询
@@ -1616,85 +1679,86 @@ GET /lib3/user/_search
 
 must：
 ​    文档 必须匹配这些条件才能被包含进来。 
-​    
+
 must_not：
 ​    文档 必须不匹配这些条件才能被包含进来。 
-​    
+​
 should：
 ​    如果满足这些语句中的任意语句，将增加 _score，否则，无任何影响。它们主要用于修正每个文档的相关性得分。 
-​    
+​
 filter：
 ​    必须 匹配，但它以不评分、过滤模式来进行。这些语句对评分没有贡献，只是根据过滤标准来排除或包含文档。
-​    
+​ 
 相关性得分是如何组合的。每一个子查询都独自地计算文档的相关性得分。一旦他们的得分被计算出来， bool 查询就将这些得分进行合并并且返回一个代表整个布尔操作的得分。
 
 下面的查询用于查找 title 字段匹配 how to make millions 并且不被标识为 spam 的文档。那些被标识为 starred 或在2014之后的文档，将比另外那些文档拥有更高的排名。如果 _两者_ 都满足，那么它排名将更高：
-
+```shell
 {
-​    "bool": {
-​        "must": { "match": { "title": "how to make millions" }},
-​        "must_not": { "match": { "tag":   "spam" }},
-​        "should": [
-​            { "match": { "tag": "starred" }},
-​            { "range": { "date": { "gte": "2014-01-01" }}}
-​        ]
-​    }
+    "bool": {
+        "must": { "match": { "title": "how to make millions" }},
+        "must_not": { "match": { "tag":   "spam" }},
+        "should": [
+            { "match": { "tag": "starred" }},
+            { "range": { "date": { "gte": "2014-01-01" }}}
+        ]
+    }
 }
-
+```
 如果没有 must 语句，那么至少需要能够匹配其中的一条 should 语句。但，如果存在至少一条 must 语句，则对 should 语句的匹配没有要求。 
 如果我们不想因为文档的时间而影响得分，可以用 filter 语句来重写前面的例子：
 
+```shell
 {
-​    "bool": {
-​        "must": { "match": { "title": "how to make millions" }},
-​        "must_not": { "match": { "tag":   "spam" }},
-​        "should": [
-​            { "match": { "tag": "starred" }}
-​        ],
-​        "filter": {
-​          "range": { "date": { "gte": "2014-01-01" }} 
-​        }
-​    }
+    "bool": {
+        "must": { "match": { "title": "how to make millions" }},
+        "must_not": { "match": { "tag":   "spam" }},
+        "should": [
+            { "match": { "tag": "starred" }}
+        ],
+        "filter": {
+          "range": { "date": { "gte": "2014-01-01" }} 
+        }
+    }
 }
-
+```
 通过将 range 查询移到 filter 语句中，我们将它转成不评分的查询，将不再影响文档的相关性排名。由于它现在是一个不评分的查询，可以使用各种对 filter 查询有效的优化手段来提升性能。
 
 bool 查询本身也可以被用做不评分的查询。简单地将它放置到 filter 语句中并在内部构建布尔逻辑：
 
-
+```shell
 {
-​    "bool": {
-​        "must": { "match": { "title": "how to make millions" }},
-​        "must_not": { "match": { "tag":   "spam" }},
-​        "should": [
-​            { "match": { "tag": "starred" }}
-​        ],
-​        "filter": {
-​          "bool": { 
-​              "must": [
-​                  { "range": { "date": { "gte": "2014-01-01" }}},
-​                  { "range": { "price": { "lte": 29.99 }}}
-​              ],
-​              "must_not": [
-​                  { "term": { "category": "ebooks" }}
-​              ]
-​          }
-​        }
-​    }
+    "bool": {
+        "must": { "match": { "title": "how to make millions" }},
+        "must_not": { "match": { "tag":   "spam" }},
+        "should": [
+            { "match": { "tag": "starred" }}
+        ],
+        "filter": {
+          "bool": { 
+              "must": [
+                  { "range": { "date": { "gte": "2014-01-01" }}},
+                  { "range": { "price": { "lte": 29.99 }}}
+              ],
+              "must_not": [
+                  { "term": { "category": "ebooks" }}
+              ]
+          }
+        }
+    }
 }
-
+```
 #### 2.10.2 constant_score查询
 
 它将一个不变的常量评分应用于所有匹配的文档。它被经常用于你只需要执行一个 filter 而没有其它查询（例如，评分查询）的情况下。
-
+```shell
 {
-​    "constant_score":   {
-​        "filter": {
-​            "term": { "category": "ebooks" } 
-​        }
-​    }
+    "constant_score":   {
+        "filter": {
+            "term": { "category": "ebooks" } 
+        }
+    }
 }
-
+```
 term 查询被放置在 constant_score 中，转成不评分的filter。这种方式可以用来取代只有 filter 语句的 bool 查询。 
 
 ## 第三节 ElasticSearch原理
@@ -1754,7 +1818,7 @@ shard负载均衡：比如现在有10shard，集群中有3个节点，es会进�
 
 
 ### 3.3 单节点环境下创建索引分析
-
+```
 PUT /myindex
 {
    "settings" : {
@@ -1762,7 +1826,7 @@ PUT /myindex
 ​      "number_of_replicas" : 1
    }
 }
-
+```
 这个时候，只会将3个primary shard分配到仅有的一个node上去，另外3个replica shard是无法分配的（一个shard的副本replica，他们两个是不能在同一个节点的）。集群可以正常工作，但是一旦出现节点宕机，数据全部丢失，而且集群不可用，无法接收任何请求。
 
 ### 3.4 两个节点环境下创建索引分析
@@ -1829,15 +1893,15 @@ primary shard 和replica shard 都可以处理客户端的读请求
 ### 3.8 文档id生成方式
 
 1.手动指定
-
+```
   put /index/type/66
-
+```
   通常是把其它系统的已有数据导入到es时
 
 2.由es生成id值
-
+```
   post /index/type
-
+```
  es生成的id长度为20个字符，使用的是base64编码，URL安全，使用的是GUID算法，分布式下并发生成id值时不会冲突
 
 
@@ -1846,14 +1910,14 @@ primary shard 和replica shard 都可以处理客户端的读请求
 其实就是我们在添加文档时request body中的内容
 
 指定返回的结果中含有哪些字段：
-
+```
 get /index/type/1?_source=name
-
+```
 
 ### 3.10 改变文档内容原理解析
 
 替换方式：
-
+```
 PUT /lib/user/4
 { "first_name" : "Jane",
 
@@ -1865,43 +1929,39 @@ PUT /lib/user/4
 
 "interests":  [ "music" ]
 }
-
+```
 修改方式(partial update)：
-
+```
 POST /lib/user/2/_update
 {
 ​    "doc":{
 ​       "age":26
 ​     }
 }
-
+```
 删除文档：标记为deleted，随着数据量的增加，es会选择合适的时间删除掉
-
-
-
-
 
 ### 3.11 基于groovy脚本执行partial update
 
 es有内置的脚本支持，可以基于groovy脚本实现复杂的操作
 
 1.修改年龄
-
+```
 POST /lib/user/4/_update
 {
   "script": "ctx._source.age+=1"
 }
-
+```
 2.修改名字
-
+```
 POST /lib/user/4/_update
 {
   "script": "ctx._source.last_name+='hehe'"
 }
-
+```
 
 3.添加爱好
-
+```
 POST /lib/user/4/_update
 {
   "script": {
@@ -1911,8 +1971,9 @@ POST /lib/user/4/_update
 ​    }
   }
 }
+```
 4.删除爱好
-
+```
 POST /lib/user/4/_update
 {
   "script": {
@@ -1922,9 +1983,9 @@ POST /lib/user/4/_update
 ​    }
   }
 }
-
+```
 5.删除文档
-
+```
 POST /lib/user/4/_update
 {
   "script": {
@@ -1934,9 +1995,9 @@ POST /lib/user/4/_update
 ​    }
   }
 }
-
+```
 6.upsert
-
+```
 POST /lib/user/4/_update
 {
   "script": "ctx._source.age += 1",
@@ -1949,19 +2010,16 @@ POST /lib/user/4/_update
 ​     "interests":  [ "music" ]
   }
 }
-
+```
 ### 3.12 partial update 处理并发冲突
 
 使用的是乐观锁:_version
 
 retry_on_conflict:
-
-
+```
 POST /lib/user/4/_update?retry_on_conflict=3
-
+```
 重新获取文档数据和版本信息进行更新，不断的操作，最多操作的次数就是retry_on_conflict的值
-
-
 ### 3.13 文档数据路由原理解析
 
 1.文档路由到分片上：
@@ -1969,9 +2027,9 @@ POST /lib/user/4/_update?retry_on_conflict=3
  一个索引由多个分片构成，当添加(删除，修改)一个文档时，es就需要决定这个文档存储在哪个分片上，这个过程就称为数据路由(routing)
 
 2.路由算法：
-
+```
      shard=hash(routing) % number_of_pirmary_shards
-
+```
 示例：一个索引，3个primary shard
 
 (1)每次增删改查时，都有一个routing值，默认是文档的_id的值
@@ -1985,8 +2043,6 @@ POST /lib/user/4/_update?retry_on_conflict=3
 routing值默认是文档的_id的值，也可以手动指定一个值，手动指定对于负载均衡以及提高批量读取的性能都有帮助
 
 3.primary shard个数一旦确定就不能修改了
-
-
 
 ### 3.14 文档增删改内部原理
 
@@ -2050,11 +2106,11 @@ put /index/type/id?timeout=60s
 ### 3.17 bulk批量操作的json格式解析
 
 bulk的格式：
-
+```
 {action:{metadata}}\n
 
 {requstbody}\n
-
+```
 为什么不使用如下格式：
 
 [{
@@ -2090,7 +2146,7 @@ bulk的格式：
 3.直接将对应的json发送到node上去
 
 ### 3.18 查询结果分析
-
+```
 {
   "took": 419,
   "timed_out": false,
@@ -2124,7 +2180,9 @@ bulk的格式：
 ​          "name": "zhaoming"
 ​        }
 ​      }
-​      
+​  }
+}
+```
 took：查询耗费的时间，单位是毫秒
 
 _shards：共请求了多少个shard
@@ -2136,7 +2194,7 @@ max_score： 本次查询中，相关度分数的最大值，文档和此次查�
 hits：默认查询前10个文档
 
 timed_out：
-
+```
 GET /lib3/user/_search?timeout=10ms
 {
 ​    "_source": ["address","name"],
@@ -2146,10 +2204,10 @@ GET /lib3/user/_search?timeout=10ms
 ​        }
 ​    }
 }
-
+```
 
 ### 3.19 多index，多type查询模式
-
+```
 GET _search
 
 GET /lib/_search
@@ -2165,9 +2223,9 @@ GET /lib,lib4/user,items/_search
 GET /_all/_search
 
 GET /_all/user,items/_search
-
+```
 ### 3.20 分页查询中的deep paging问题
-
+```
 GET /lib3/user/_search
 {
 ​    "from":0,
@@ -2180,7 +2238,7 @@ GET /lib3/user/_search
 }
 
 GET /_search?from=0&size=3
-
+```
 deep paging:查询的很深，比如一个索引有三个primary shard，分别存储了6000条数据，我们要得到第100页的数据(每页10条)，类似这种情况就叫deep paging
 
 如何得到第100页的10条数据？
@@ -2202,13 +2260,13 @@ deep paging性能问题
 
 
 ### 3.21 query string查询及copy_to解析
-
+```
 GET /lib3/user/_search?q=interests:changge
 
 GET /lib3/user/_search?q=+interests:changge
 
 GET /lib3/user/_search?q=-interests:changge
-
+```
 copy_to字段是把其它字段中的值，以空格为分隔符组成一个大字符串，然后被分析和索引，但是不存储，也就是说它能被查询，但不能被取回显示。
 
 
@@ -2224,7 +2282,7 @@ GET /lib3/user/_search?q=changge
 对一个字符串类型的字段进行排序通常不准确，因为已经被分词成多个词条了
 
 解决方式：对字段索引两次，一次索引分词（用于搜索），一次索引不分词(用于排序)
-
+```
 GET /lib3/_search
 
 GET /lib3/user/_search
@@ -2283,8 +2341,7 @@ PUT /lib3
 ​        }
 ​     }
 }
-
-
+```
 ### 3.23 如何计算相关度分数
 
 使用的是TF/IDF算法(Term Frequency&Inverse Document Frequency)
@@ -2317,7 +2374,7 @@ hello 在索引的所有文档中出现了500次，world出现了100次
 
 
 查看分数是如何计算的：
-
+```
 GET /lib3/user/_search?explain=true
 {
 ​    "query":{
@@ -2326,9 +2383,9 @@ GET /lib3/user/_search?explain=true
 ​        }
 ​    }
 }
-
+```
 查看一个文档能否匹配上某个查询：
-
+```
 GET /lib3/user/2/_explain
 {
 ​    "query":{
@@ -2337,8 +2394,7 @@ GET /lib3/user/2/_explain
 ​        }
 ​    }
 }
-
-
+```
 ### 3.24 Doc Values 解析
 
 DocValues其实是Lucene在构建倒排索引时，会额外建立一个有序的正排索引(基于document => field value的映射列表)
@@ -2358,7 +2414,7 @@ doc2         29         1989-11-11
 对排序，分组和一些聚合操作能够大大提升性能 
 
 注意：默认对不分词的字段是开启的，对分词字段无效（需要把fielddata设置为true）
-
+```
 PUT /lib3
 {
 ​    "settings":{
@@ -2380,8 +2436,7 @@ PUT /lib3
 ​      }
 ​     }
 }
-
-
+```
 ### 3.25 基于scroll技术滚动搜索大量数据
 
 如果一次性要查出来比如10万条数据，那么性能会很差，此时一般会采取用scoll滚动查询，一批一批的查，直到所有数据都查询完为止。
@@ -2391,7 +2446,7 @@ PUT /lib3
 2.采用基于_doc(不使用_score)进行排序的方式，性能较高
 
 3.每次发送scroll请求，我们还需要指定一个scoll参数，指定一个时间窗口，每次搜索请求只要在这个时间窗口内能完成就可以了
-
+```
 GET /lib3/user/_search?scroll=1m
 {
   "query": {
@@ -2406,7 +2461,7 @@ GET /_search/scroll
    "scroll": "1m",
    "scroll_id": "DnF1ZXJ5VGhlbkZldGNoAwAAAAAAAAAdFkEwRENOVTdnUUJPWVZUd1p2WE5hV2cAAAAAAAAAHhZBMERDTlU3Z1FCT1lWVHdadlhOYVdnAAAAAAAAAB8WQTBEQ05VN2dRQk9ZVlR3WnZYTmFXZw=="
 }
-
+```
 ### 3.26 dynamic mapping策略
 
 **dynamic**:
@@ -2416,8 +2471,7 @@ GET /_search/scroll
 2.false:遇到陌生字段就忽略
 
 3.strict:约到陌生字段就报错
-
-
+```
 PUT /lib8
 {
 ​    "settings":{
@@ -2437,9 +2491,9 @@ PUT /lib8
 ​      }
 ​     }
 }
-
+```
 #会报错
-
+```
 PUT  /lib8/user/1
 {
   "name":"lisi",
@@ -2449,12 +2503,11 @@ PUT  /lib8/user/1
 ​    "city":"beijing"
   }
 }
-
-
+```
 **date_detection**:默认会按照一定格式识别date，比如yyyy-MM-dd
 
 可以手动关闭某个type的date_detection
-
+```
 PUT /lib8
 {
 ​    "settings":{
@@ -2467,10 +2520,9 @@ PUT /lib8
 ​        }
 ​    }
 }
-
-
+```
 **定制 dynamic mapping template(type)**
-
+```
 PUT /my_index
 { 
   "mappings": { 
@@ -2490,15 +2542,16 @@ PUT /my_index
 ​     } 
   } 
 }
+```
 #使用了模板
-
+```
 PUT /my_index/my_type/3
 {
   "title_en": "this is my dog"
-
 }
+```
 #没有使用模板
-
+```
 PUT /my_index/my_type/5
 {
   "title": "this is my cat"
@@ -2512,14 +2565,13 @@ GET my_index/my_type/_search
 ​    }
   }
 }
-
+```
 ### 3.27重建索引
 
 一个field的设置是不能修改的，如果要修改一个field，那么应该重新按照新的mapping，建立一个index，然后将数据批量查询出来，重新用bulk api写入到index中。
 
 批量查询的时候，建议采用scroll api，并且采用多线程并发的方式来reindex数据，每次scroll就查询指定日期的一段数据，交给一个线程即可。
-
-
+```
 PUT /index1/type1/4
 {
    "content":"1990-12-12"
@@ -2528,18 +2580,16 @@ PUT /index1/type1/4
 GET /index1/type1/_search
 
 GET /index1/type1/_mapping
-
-
-
+```
 #报错
+```
 PUT /index1/type1/4
 {
    "content":"I am very happy."
 }
-
-
+```
 #修改content的类型为string类型,报错，不允许修改
-
+```
 PUT /index1/_mapping/type1
 {
   "properties": {
@@ -2548,14 +2598,14 @@ PUT /index1/_mapping/type1
 ​    }
   }
 }
-
+```
 #创建一个新的索引，把index1索引中的数据查询出来导入到新的索引中
 #但是应用程序使用的是之前的索引，为了不用重启应用程序，给index1这个索引起个#别名
-
+```
 PUT /index1/_alias/index2
-
+```
 #创建新的索引，把content的类型改为字符串
-
+```
 PUT /newindex
 {
   "mappings": {
@@ -2568,9 +2618,9 @@ PUT /newindex
 ​    }
   }
 }
-
+```
 #使用scroll批量查询
-
+```
 GET /index1/type1/_search?scroll=1m
 {
   "query": {
@@ -2579,14 +2629,15 @@ GET /index1/type1/_search?scroll=1m
   "sort": ["_doc"],
   "size": 2
 }
-
+```
 #使用bulk批量写入新的索引
+```
 POST /_bulk
 {"index":{"_index":"newindex","_type":"type1","_id":1}}
 {"content":"1982-12-12"}
-
+```
 #将别名index2和新的索引关联，应用程序不用重启
-
+```
 POST /_aliases
 {
   "actions": [
@@ -2596,8 +2647,7 @@ POST /_aliases
 }
 
 GET index2/type1/_search
-
-
+```
 ### 3.28 索引不可变的原因
 
 倒排索引包括：
@@ -2617,7 +2667,7 @@ GET index2/type1/_search
 ### 4.1在Java应用中实现查询文档
 
 pom中加入ElasticSearch6.2.4的依赖：
-
+```
 <dependencies>
 ​    <dependency>
 ​      <groupId>org.elasticsearch.client</groupId>
@@ -2649,9 +2699,9 @@ pom中加入ElasticSearch6.2.4的依赖：
 ​			</plugin>
 ​		</plugins>
   </build>  
-
+```
 ### 4.2 在Java应用中实现添加文档
-
+```
               "{" +
                 "\"id\":\"1\"," +
                 "\"title\":\"Java设计模式之装饰模式\"," +
@@ -2673,17 +2723,17 @@ pom中加入ElasticSearch6.2.4的依赖：
 ​                .get();
 ​        
 ​    	System.out.println(response.status());
-
+```
 ### 4.3在Java应用中实现删除文档
-
+```
 DeleteResponse response=client.prepareDelete("index1","blog","SzYJjWMBjSAutsuLRP_P").get();
 
 //删除成功返回OK，否则返回NOT_FOUND
 
 System.out.println(response.status());
-
+```
 ### 4.4在Java应用中实现更新文档
-
+```
  UpdateRequest request=new UpdateRequest();
 ​        request.index("index1")
 ​                .type("blog")
@@ -2723,152 +2773,47 @@ UpdateResponse response=client.update(request2).get();
 //upsert操作成功返回OK，否则返回NOT_FOUND
 
 System.out.println(response.status());
-
-
+```
 ### 4.5在Java应用中实现批量操作
-
+```
  MultiGetResponse mgResponse = client.prepareMultiGet()
-​	                .add("index1","blog","3","2")
-​	                .add("lib3","user","1","2","3")
-​	                .get();
-​		    
+	                .add("index1","blog","3","2")
+	                .add("lib3","user","1","2","3")
+	                .get();
+		    
 for(MultiGetItemResponse response:mgResponse){
-​	            GetResponse rp=response.getResponse();
-​	            if(rp!=null && rp.isExists()){
-​	                System.out.println(rp.getSourceAsString());
-​	            }
-​	        }
-​	        
+	            GetResponse rp=response.getResponse();
+	            if(rp!=null && rp.isExists()){
+	                System.out.println(rp.getSourceAsString());
+	            }
+	        }
+	        
 bulk：
 
 BulkRequestBuilder bulkRequest = client.prepareBulk();
 
 bulkRequest.add(client.prepareIndex("lib2", "books", "4")
-​                .setSource(XContentFactory.jsonBuilder()
-​                        .startObject()
-​                        .field("title", "python")
-​                        .field("price", 68)
-​                        .endObject()
-​                )
-​        );
+                .setSource(XContentFactory.jsonBuilder()
+                        .startObject()
+                        .field("title", "python")
+                        .field("price", 68)
+                        .endObject()
+                )
+        );
 bulkRequest.add(client.prepareIndex("lib2", "books", "5")
-​                .setSource(XContentFactory.jsonBuilder()
-​                        .startObject()
-​                        .field("title", "VR")
-​                        .field("price", 38)
-​                        .endObject()
-​                )
-​        );
-​        //批量执行
+                .setSource(XContentFactory.jsonBuilder()
+                        .startObject()
+                        .field("title", "VR")
+                        .field("price", 38)
+                        .endObject()
+                )
+        );
+        //批量执行
 BulkResponse bulkResponse = bulkRequest.get();
-​        
+        
 System.out.println(bulkResponse.status());
 if (bulkResponse.hasFailures()) {
-​            
-​            System.out.println("存在失败操作");
-​        }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-​              
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-​    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+            
+            System.out.println("存在失败操作");
+        }
+```

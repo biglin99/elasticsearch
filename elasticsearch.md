@@ -134,7 +134,7 @@ su esuser
 ./bin/elasticsearch
 ```
 再次启动显示已杀死：
-![image](assets/3.png)
+![image](assets/3.png
 
 需要调整JVM的内存大小：
 ```
@@ -188,6 +188,7 @@ esuser hard nproc 4096
 ```
 处理第二个错误：
 进入limits.d目录下修改配置文件。
+
 ```
 vim /etc/security/limits.d/20-nproc.conf 
 修改为 esuser soft nproc 4096
@@ -1210,15 +1211,15 @@ GET /lib3/user/_search
 range:实现范围查询
 参数：
 
-​	from,to：这2个默认包含边界
+ 	from,to：这2个默认包含边界
 
-​	gte：大于等于，gt大于；
+ 	gte：大于等于，gt大于；
 
-​	lte ：小于等于，lt小于；
+ 	lte ：小于等于，lt小于；
 
-​	include_lower:是否包含范围的左边界，默认是true
+ 	include_lower:是否包含范围的左边界，默认是true
 
-​	include_upper:是否包含范围的右边界，默认是true
+ 	include_upper:是否包含范围的右边界，默认是true
 
 ```sh
 GET /lib3/user/_search
@@ -1678,17 +1679,17 @@ GET /lib3/user/_search
 接收以下参数：
 
 must：
-​    文档 必须匹配这些条件才能被包含进来。 
+​     文档 必须匹配这些条件才能被包含进来。 
 
 must_not：
-​    文档 必须不匹配这些条件才能被包含进来。 
-​
+​     文档 必须不匹配这些条件才能被包含进来。 
+
 should：
-​    如果满足这些语句中的任意语句，将增加 _score，否则，无任何影响。它们主要用于修正每个文档的相关性得分。 
-​
+​     如果满足这些语句中的任意语句，将增加 _score，否则，无任何影响。它们主要用于修正每个文档的相关性得分。 
+
 filter：
-​    必须 匹配，但它以不评分、过滤模式来进行。这些语句对评分没有贡献，只是根据过滤标准来排除或包含文档。
-​ 
+​     必须 匹配，但它以不评分、过滤模式来进行。这些语句对评分没有贡献，只是根据过滤标准来排除或包含文档。
+
 相关性得分是如何组合的。每一个子查询都独自地计算文档的相关性得分。一旦他们的得分被计算出来， bool 查询就将这些得分进行合并并且返回一个代表整个布尔操作的得分。
 
 下面的查询用于查找 title 字段匹配 how to make millions 并且不被标识为 spam 的文档。那些被标识为 starred 或在2014之后的文档，将比另外那些文档拥有更高的排名。如果 _两者_ 都满足，那么它排名将更高：
@@ -1766,7 +1767,7 @@ term 查询被放置在 constant_score 中，转成不评分的filter。这种�
 ### 3.1 解析es的分布式架构
 
 #### 3.1.1 分布式架构的透明隐藏特性
-   ElasticSearch是一个分布式系统，隐藏了复杂的处理机制
+ElasticSearch是一个分布式系统，隐藏了复杂的处理机制
 
 分片机制：我们不用关心数据是按照什么机制分片的、最后放入到哪个分片中
 
@@ -1818,12 +1819,12 @@ shard负载均衡：比如现在有10shard，集群中有3个节点，es会进�
 
 
 ### 3.3 单节点环境下创建索引分析
-```
+```shell
 PUT /myindex
 {
    "settings" : {
-​      "number_of_shards" : 3,
-​      "number_of_replicas" : 1
+      "number_of_shards" : 3,
+      "number_of_replicas" : 1
    }
 }
 ```
@@ -1893,14 +1894,14 @@ primary shard 和replica shard 都可以处理客户端的读请求
 ### 3.8 文档id生成方式
 
 1.手动指定
-```
-  put /index/type/66
+```shell
+put /index/type/66
 ```
   通常是把其它系统的已有数据导入到es时
 
 2.由es生成id值
-```
-  post /index/type
+```shell
+post /index/type
 ```
  es生成的id长度为20个字符，使用的是base64编码，URL安全，使用的是GUID算法，分布式下并发生成id值时不会冲突
 
@@ -1910,33 +1911,30 @@ primary shard 和replica shard 都可以处理客户端的读请求
 其实就是我们在添加文档时request body中的内容
 
 指定返回的结果中含有哪些字段：
-```
+```shell
 get /index/type/1?_source=name
 ```
 
 ### 3.10 改变文档内容原理解析
 
 替换方式：
-```
+```shell
 PUT /lib/user/4
-{ "first_name" : "Jane",
-
-"last_name" :   "Lucy",
-
-"age" :         24,
-
-"about" :       "I like to collect rock albums",
-
-"interests":  [ "music" ]
+{ 
+	"first_name" : "Jane",
+	"last_name" :   "Lucy",
+	"age" :         24,
+	"about" :       "I like to collect rock albums",
+	"interests":  [ "music" ]
 }
 ```
-修改方式(partial update)：
-```
+修改方式(partial update部分修改)：
+```shell
 POST /lib/user/2/_update
 {
-​    "doc":{
-​       "age":26
-​     }
+    "doc":{
+       "age":26
+     }
 }
 ```
 删除文档：标记为deleted，随着数据量的增加，es会选择合适的时间删除掉
@@ -1946,14 +1944,14 @@ POST /lib/user/2/_update
 es有内置的脚本支持，可以基于groovy脚本实现复杂的操作
 
 1.修改年龄
-```
+```shell
 POST /lib/user/4/_update
 {
   "script": "ctx._source.age+=1"
 }
 ```
 2.修改名字
-```
+```shell
 POST /lib/user/4/_update
 {
   "script": "ctx._source.last_name+='hehe'"
@@ -1961,53 +1959,54 @@ POST /lib/user/4/_update
 ```
 
 3.添加爱好
-```
+```shell
 POST /lib/user/4/_update
 {
   "script": {
-​    "source": "ctx._source.interests.add(params.tag)",
-​    "params": {
-​      "tag":"picture"
-​    }
+    "source": "ctx._source.interests.add(params.tag)",
+    "params": {
+      "tag":"picture"
+    }
   }
 }
 ```
 4.删除爱好
-```
+```shell
 POST /lib/user/4/_update
 {
   "script": {
-​    "source": "ctx._source.interests.remove(ctx._source.interests.indexOf(params.tag))",
-​    "params": {
-​      "tag":"picture"
-​    }
+    "source": "ctx._source.interests.remove(ctx._source.interests.indexOf(params.tag))",
+    "params": {
+      "tag":"picture"
+    }
   }
 }
 ```
 5.删除文档
-```
+```shell
 POST /lib/user/4/_update
 {
   "script": {
-​    "source": "ctx.op=ctx._source.age==params.count?'delete':'none'",
-​    "params": {
-​        "count":29
-​    }
+    "source": "ctx.op=ctx._source.age==params.count?'delete':'none'",
+    "params": {
+        "count":29   # 如果这里是数值类型，不要加引号
+    }
   }
 }
 ```
-6.upsert
-```
+6.upsert  （如果存在执行script，如果不存在则，插入更新）
+
+```shell
 POST /lib/user/4/_update
 {
   "script": "ctx._source.age += 1",
 
   "upsert": {
-​     "first_name" : "Jane",
-​     "last_name" :   "Lucy",
-​     "age" :  20,
-​     "about" :       "I like to collect rock albums",
-​     "interests":  [ "music" ]
+     "first_name" : "Jane",
+     "last_name" :   "Lucy",
+     "age" :  20,
+     "about" :       "I like to collect rock albums",
+     "interests":  [ "music" ]
   }
 }
 ```
@@ -2040,11 +2039,13 @@ POST /lib/user/4/_update?retry_on_conflict=3
 
 余数肯定在0---（number_of_pirmary_shards-1）之间，文档就在对应的shard上
 
-routing值默认是文档的_id的值，也可以手动指定一个值，手动指定对于负载均衡以及提高批量读取的性能都有帮助
+**routing值默认是文档的_id的值，也可以手动指定一个值，手动指定对于负载均衡以及提高批量读取的性能都有帮助**
 
-3.primary shard个数一旦确定就不能修改了
+3.primary shard个数一旦确定就不能修改了（修改后，文档路由会出错）
 
 ### 3.14 文档增删改内部原理
+
+> 这里有点类似redis cluster模式下，测试可以redis-cli -c
 
 1:发送增删改请求时，可以选择任意一个节点，该节点就成了协调节点(coordinating node)
 
@@ -2052,23 +2053,30 @@ routing值默认是文档的_id的值，也可以手动指定一个值，手动�
 
 3.协调节点对客户端做出响应
 
-
 ### 3.15 写一致性原理和quorum机制
 
-1.任何一个增删改操作都可以跟上一个参数
-consistency
+1.任何一个增删改操作都可以跟上一个参数：consistency
 
+> PUT /lib/user/4?consistency=all
+>
+> {  
+>
+>  	"script": "ctx._source.last_name +='heheh'"
+>
+> }
+
+```shell
 可以给该参数指定的值：
-
-one: (primary shard)只要有一个primary shard是活跃的就可以执行
-
 all: (all shard)所有的primary shard和replica shard都是活跃的才能执行
-
+one: (primary shard)只要有一个primary shard是活跃的就可以执行
 quorum: (default) 默认值，大部分shard是活跃的才能执行 （例如共有6个shard，至少有3个shard是活跃的才能执行写操作）
+```
 
 2.quorum机制：多数shard都是可用的，
 
+```shell
 int((primary+number_of_replica)/2)+1
+```
 
 例如：3个primary shard，1个replica
 
@@ -2086,44 +2094,42 @@ int((1+1)/2)+1=2
 
 int((1+3)/2)+1=3
 
-最后:当活跃的shard的个数没有达到要求时，
+因为相同的replica shard在同一节点上只能有一个，所以这里会出现分配不齐全齐全。最后:当活跃的shard的个数没有达到要求时，
 es默认会等待一分钟，如果在等待的期间活跃的shard的个数没有增加，则显示timeout
 
-put /index/type/id?timeout=60s
+```shell
+# 自定义等待时间
+PUT /index/type/id?timeout=60s  
+```
 
 
 ### 3.16 文档查询内部原理
 
-第一步：查询请求发给任意一个节点，该节点就成了coordinating node，该节点使用路由算法算出文档所在的primary shard
+第一步：查询请求发给任意一个节点，该节点就成了**coordinating node**，该节点使用路由算法算出文档所在的primary shard
 
-第二步：协调节点把请求转发给primary shard也可以转发给replica shard(使用轮询调度算法(Round-Robin Scheduling，把请求平均分配至primary shard 和replica shard)
+第二步：协调节点把请求转发给primary shard也可以转发给replica shard(使用**轮询调度算法**(**Round-Robin Scheduling**，把请求平均分配至primary shard 和replica shard)
 
 第三步：处理请求的节点把结果返回给协调节点，协调节点再返回给应用程序
 
-特殊情况：请求的文档还在建立索引的过程中，primary shard上存在，但replica shar上不存在，但是请求被转发到了replica shard上，这时就会提示找不到文档
-
+特殊情况：请求的文档还在建立索引的过程中，primary shard上存在，但replica shar上不存在，但是请求被转发到了replica shard上，这时就会提示找不到文档，所有es是近实时
 
 ### 3.17 bulk批量操作的json格式解析
 
 bulk的格式：
-```
-{action:{metadata}}\n
-
-{requstbody}\n
+```shell
+{action:{metadata}}\n   # 行为
+{requstbody}\n   # 请求体
 ```
 为什么不使用如下格式：
 
+```shell
 [{
-
 "action": {
-
 },
-
 "data": {
-
 }
-
 }]
+```
 
 这种方式可读性好，但是内部处理就麻烦了：
 
@@ -2146,41 +2152,41 @@ bulk的格式：
 3.直接将对应的json发送到node上去
 
 ### 3.18 查询结果分析
-```
+```shell
 {
   "took": 419,
   "timed_out": false,
   "_shards": {
-​    "total": 3,
-​    "successful": 3,
-​    "skipped": 0,
-​    "failed": 0
+    "total": 3,
+    "successful": 3,
+    "skipped": 0,
+    "failed": 0
   },
   "hits": {
-​    "total": 3,
-​    "max_score": 0.6931472,
-​    "hits": [
-​      {
-​        "_index": "lib3",
-​        "_type": "user",
-​        "_id": "3",
-​        "_score": 0.6931472,
-​        "_source": {
-​          "address": "bei jing hai dian qu qing he zhen",
-​          "name": "lisi"
-​        }
-​      },
-​      {
-​        "_index": "lib3",
-​        "_type": "user",
-​        "_id": "2",
-​        "_score": 0.47000363,
-​        "_source": {
-​          "address": "bei jing hai dian qu qing he zhen",
-​          "name": "zhaoming"
-​        }
-​      }
-​  }
+    "total": 3,
+    "max_score": 0.6931472,
+    "hits": [
+      {
+        "_index": "lib3",
+        "_type": "user",
+        "_id": "3",
+        "_score": 0.6931472,
+        "_source": {
+          "address": "bei jing hai dian qu qing he zhen",
+          "name": "lisi"
+        }
+      },
+      {
+        "_index": "lib3",
+        "_type": "user",
+        "_id": "2",
+        "_score": 0.47000363,
+        "_source": {
+          "address": "bei jing hai dian qu qing he zhen",
+          "name": "zhaoming"
+        }
+      }
+  }
 }
 ```
 took：查询耗费的时间，单位是毫秒
@@ -2194,47 +2200,42 @@ max_score： 本次查询中，相关度分数的最大值，文档和此次查�
 hits：默认查询前10个文档
 
 timed_out：
-```
-GET /lib3/user/_search?timeout=10ms
+```shell
+GET /lib3/user/_search?timeout=10ms #只返回10ms查询到的数据
 {
-​    "_source": ["address","name"],
-​    "query": {
-​        "match": {
-​            "interests": "changge"
-​        }
-​    }
+    "_source": ["address","name"],
+    "query": {
+        "match": {
+            "interests": "changge"
+        }
+    }
 }
 ```
 
 ### 3.19 多index，多type查询模式
-```
+
+```shell
 GET _search
-
 GET /lib/_search
-
 GET /lib,lib3/_search
-
 GET /*3,*4/_search
-
 GET /lib/user/_search
-
 GET /lib,lib4/user,items/_search
-
 GET /_all/_search
-
 GET /_all/user,items/_search
 ```
 ### 3.20 分页查询中的deep paging问题
+
 ```
 GET /lib3/user/_search
 {
-​    "from":0,
-​    "size":2,
-​    "query":{
-​        "terms":{
-​            "interests": ["hejiu","changge"]
-​        }
-​    }
+     "from":0,
+     "size":2,
+     "query":{
+         "terms":{
+             "interests": ["hejiu","changge"]
+         }
+     }
 }
 
 GET /_search?from=0&size=3
@@ -2258,91 +2259,181 @@ deep paging性能问题
 
 鉴于deep paging的性能问题，所以应尽量减少使用。
 
-
 ### 3.21 query string查询及copy_to解析
-```
-GET /lib3/user/_search?q=interests:changge
 
-GET /lib3/user/_search?q=+interests:changge
+```shell
+PUT /myindex/article/1 
+{ 
+  "post_date": "2018-05-10", 
+  "title": "Java", 
+  "content": "java is the best language", 
+  "author_id": 119
+}
 
-GET /lib3/user/_search?q=-interests:changge
+PUT /myindex/article/2
+{ 
+  "post_date": "2018-05-12", 
+  "title": "htitle", 
+  "content": "I like html", 
+  "author_id": 120
+}
+
+PUT /myindex/article/3
+{ 
+  "post_date": "2018-05-16", 
+  "title": "es", 
+  "content": "Es is distributed document store", 
+  "author_id": 110
+}
+
+PUT /myindex/article/4
+{ 
+  "post_date": "2018-05-16", 
+  "title": "es", 
+  "content": "Es is distributed document store", 
+  "author_id": 110,
+  "address":"shatianzhen"
+}
+
+# 查询：
+GET /myindex/_search
+# 时间字段不分词，必须精确匹配
+GET /myindex/article/_search?q=post_date:2018-05-10
+# 如果会在所有字段进行匹配，效率低，指定字段，或者使用copy_to优化
+GET /myindex/article/_search?q=html,document
+
+# 指定字段
+GET /myindex/article/_search?q=content:html,document
 ```
+copy_to:
+
+copy_to 需要在自定义mapping中设定，将字段合并在一起。如下：
+
+```shell
+# 将address、content 使用copy_to fullcontent
+PUT /myindex/article/_mapping
+{
+  "properties": {
+    "address": {
+            "type": "text",
+            "copy_to": "fullcontent",    # copy_to
+            "fields": {
+              "keyword": {
+                "type": "keyword",
+                "ignore_above": 256
+              }
+            }
+          },
+          "author_id": {
+            "type": "long"
+          },
+          "content": {
+            "type": "text",
+            "copy_to": "fullcontent",   # copy_to
+            "fields": {
+              "keyword": {
+                "type": "keyword",
+                "ignore_above": 256
+              }
+            }
+          },
+          "ids": {
+            "type": "long"
+          },
+          "post_date": {
+            "type": "date"
+          },
+          "title": {
+            "type": "text",
+            "fields": {
+              "keyword": {
+                "type": "keyword",
+                "ignore_above": 256
+              }
+            }
+          }
+  }
+}
+# 查询
+# 可以查询出htitle，依旧所有匹配
+GET /myindex/article/_search?q=htitle,document   
+# 指定fullcontent，htitle无法查询出来。
+GET /myindex/article/_search?q=fullcontent:htitle,document  
+```
+
 copy_to字段是把其它字段中的值，以空格为分隔符组成一个大字符串，然后被分析和索引，但是不存储，也就是说它能被查询，但不能被取回显示。
 
-
-
 注意:copy_to指向的字段字段类型要为：text
-
-当没有指定field时，就会从copy_to字段中查询
-GET /lib3/user/_search?q=changge
-
 
 ### 3.22字符串排序问题
 
 对一个字符串类型的字段进行排序通常不准确，因为已经被分词成多个词条了
 
 解决方式：对字段索引两次，一次索引分词（用于搜索），一次索引不分词(用于排序)
-```
+```shell
 GET /lib3/_search
-
 GET /lib3/user/_search
 {
   "query": {
-​    "match_all": {}
+    "match_all": {}
   },
   "sort": [
-​    {
-​      "interests": {
-​        "order": "desc"
-​      }
-​    }
+    {
+      "interests": {
+        "order": "desc"   # 因为被分词了，所以报错
+      }
+    }
   ]
 }
-
-GET /lib3/user/_search
-{
-  "query": {
-​    "match_all": {}
-  },
-  "sort": [
-​    {
-​      "interests.raw": {
-​        "order": "asc"
-​      }
-​    }
-  ]
-}
-
+# 修改_mapping
 DELETE lib3
-
 PUT /lib3
 {
-​    "settings":{
-​        "number_of_shards" : 3,
-​        "number_of_replicas" : 0
-​      },
-​     "mappings":{
-​      "user":{
-​        "properties":{
-​            "name": {"type":"text"},
-​            "address": {"type":"text"},
-​            "age": {"type":"integer"},
-​            "birthday": {"type":"date"},
-​            "interests": {
-​                "type":"text",
-​                "fields": {
-​                  "raw":{
-​                     "type": "keyword"
-​                   }
-​                },
-​                "fielddata": true
-​             }
-​          }
-​        }
-​     }
+    "settings":{
+        "number_of_shards" : 3,
+        "number_of_replicas" : 0
+      },
+     "mappings":{
+      "user":{
+        "properties":{
+            "name": {"type":"text"},
+            "address": {"type":"text"},
+            "age": {"type":"integer"},
+            "birthday": {"type":"date"},
+            "interests": {
+                "type":"text",
+                "fields": {    # 设置不分词，同时设置fielddata：true
+                  "raw":{
+                     "type": "keyword"
+                   }
+                },
+                "fielddata": true    # 这个不能漏掉
+             }
+          }
+        }
+     }
+}
+
+# 现在可以排序了
+GET /lib3/user/_search?sort=interests:desc  # 但是这里是根据分词后的第一个词排序
+# 根据完整的一行排序：
+GET /lib3/user/_search?sort=interests.raw:desc
+# 或
+GET /lib3/user/_search
+{
+  "query": {
+    "match_all": {}
+  },
+  "sort": [
+    {
+      "interests.raw": {
+        "order": "desc"
+      }
+    }
+  ]
 }
 ```
-### 3.23 如何计算相关度分数
+3.23 如何计算相关度分数
 
 使用的是TF/IDF算法(Term Frequency&Inverse Document Frequency)
 
@@ -2374,30 +2465,34 @@ hello 在索引的所有文档中出现了500次，world出现了100次
 
 
 查看分数是如何计算的：
-```
+```shell
 GET /lib3/user/_search?explain=true
 {
-​    "query":{
-​        "match":{
-​            "interests": "duanlian,changge"
-​        }
-​    }
+    "query":{
+        "match":{
+            "interests": "duanlian,changge"
+        }
+    }
 }
 ```
 查看一个文档能否匹配上某个查询：
-```
+```shell
 GET /lib3/user/2/_explain
 {
-​    "query":{
-​        "match":{
-​            "interests": "duanlian,changge"
-​        }
-​    }
+    "query":{
+        "match":{
+            "interests": "duanlian,changge"
+        }
+    }
 }
 ```
 ### 3.24 Doc Values 解析
 
 DocValues其实是Lucene在构建倒排索引时，会额外建立一个有序的正排索引(基于document => field value的映射列表)
+
+非字符串类型，如数字，日期等，在创建倒排索引的时候，还会创建正排索引。字符串可通过配置mapping设定。
+
+正排索引：
 
 {"birthday":"1985-11-11",age:23}
 
@@ -2414,27 +2509,27 @@ doc2         29         1989-11-11
 对排序，分组和一些聚合操作能够大大提升性能 
 
 注意：默认对不分词的字段是开启的，对分词字段无效（需要把fielddata设置为true）
-```
+```shell
 PUT /lib3
 {
-​    "settings":{
-​    "number_of_shards" : 3,
-​    "number_of_replicas" : 0
-​    },
-​     "mappings":{
-​      "user":{
-​        "properties":{
-​            "name": {"type":"text"},
-​            "address": {"type":"text"},
-​            "age": {
-​              "type":"integer",
-​              "doc_values":false
-​            },
-​            "interests": {"type":"text"},
-​            "birthday": {"type":"date"}
-​        }
-​      }
-​     }
+    "settings":{
+    "number_of_shards" : 3,
+    "number_of_replicas" : 0
+    },
+     "mappings":{
+      "user":{
+        "properties":{
+            "name": {"type":"text"},
+            "address": {"type":"text"},
+            "age": {
+              "type":"integer",
+              "doc_values":false  # 可以关闭默认正排索引，就不能排序了
+            },
+            "interests": {"type":"text"},
+            "birthday": {"type":"date"}
+        }
+      }
+     }
 }
 ```
 ### 3.25 基于scroll技术滚动搜索大量数据
@@ -2446,112 +2541,118 @@ PUT /lib3
 2.采用基于_doc(不使用_score)进行排序的方式，性能较高
 
 3.每次发送scroll请求，我们还需要指定一个scoll参数，指定一个时间窗口，每次搜索请求只要在这个时间窗口内能完成就可以了
-```
+
+```shell
+# 第一次查询，会返回一个scroll_id
 GET /lib3/user/_search?scroll=1m
 {
   "query": {
-​    "match_all": {}
+    "match_all": {}
   },
   "sort":["_doc"],
   "size":3
 }
-
+# 以后每次查询，使用前面的scroll_id
 GET /_search/scroll
 {
    "scroll": "1m",
-   "scroll_id": "DnF1ZXJ5VGhlbkZldGNoAwAAAAAAAAAdFkEwRENOVTdnUUJPWVZUd1p2WE5hV2cAAAAAAAAAHhZBMERDTlU3Z1FCT1lWVHdadlhOYVdnAAAAAAAAAB8WQTBEQ05VN2dRQk9ZVlR3WnZYTmFXZw=="
+   "scroll_id": "DnF1ZXJ5VGhlbkZldGNoAwAAAAAAAAAdFkEwRENOVTdnUUJPWVZUd1p2WE5hV2cAAAAAAAAAHhZBMERDTlU3Z1FCT1lWVHdadlhOYVdnAAAAAAAAAB8WQTBEQ05VN2dRQk9ZVlR3WnZYTmFXZw=="  # 使用前面返回的id
 }
 ```
 ### 3.26 dynamic mapping策略
 
-**dynamic**:
+当添加的doc出现了没有定义的字段，通过**dynamic**来设置处理策略：
 
 1.true:遇到陌生字段就 dynamic mapping
 
 2.false:遇到陌生字段就忽略
 
 3.strict:约到陌生字段就报错
-```
-PUT /lib8
+
+```sh
+PUT /lib5
 {
-​    "settings":{
-​    "number_of_shards" : 3,
-​    "number_of_replicas" : 0
-​    },
-​     "mappings":{
-​      "user":{
-​        "dynamic":strict,
-​        "properties":{
-​            "name": {"type":"text"},
-​            "address":{
-​                "type":"object",
-​                "dynamic":true
-​            },
-​        }
-​      }
-​     }
+    "settings": {
+    "number_of_shards": 5,
+    "number_of_replicas": 0
+  },
+  "mappings": {
+    "user":{
+      "dynamic": "strict",  # 对整个type生效
+      "properties": {
+        "name": {
+          "type": "text"
+        },
+        "address":{
+          "type": "object",  
+          "dynamic": true  # 对address这个字段处理
+        }
+      }
+    }
+  }
 }
 ```
 #会报错
-```
-PUT  /lib8/user/1
+```shell
+PUT  /lib5/user/1
 {
   "name":"lisi",
   "age":20,
   "address":{
-​    "province":"beijing",
-​    "city":"beijing"
+    "province":"beijing",
+    "city":"beijing"
   }
 }
 ```
-**date_detection**:默认会按照一定格式识别date，比如yyyy-MM-dd
+**date_detection**:默认会按照一定格式识别date，比如yyyy-MM-dd，默认true
 
 可以手动关闭某个type的date_detection
-```
+```shell
 PUT /lib8
 {
-​    "settings":{
-​    "number_of_shards" : 3,
-​    "number_of_replicas" : 0
-​    },
-​     "mappings":{
-​      "user":{
-​        "date_detection": false,
-​        }
-​    }
+    "settings":{
+    "number_of_shards" : 3,
+    "number_of_replicas" : 0
+    },
+     "mappings":{
+      "user":{
+        "date_detection": false  # 不自动识别为日期
+        }
+    }
 }
 ```
 **定制 dynamic mapping template(type)**
-```
+```shell
 PUT /my_index
 { 
   "mappings": { 
-​    "my_type": { 
-​      "dynamic_templates": [ 
-​        { 
-​          "en": { 
-​            "match": "*_en", 
-​            "match_mapping_type": "string", 
-​            "mapping": { 
-​              "type": "text", 
-​              "analyzer": "english" 
-​            } 
-​          } 
-​        } 
-​      ] 
-​     } 
+    "my_type": { 
+      "dynamic_templates": [ 
+        { 
+          "en": { 
+            "match": "*_en",    # 如果字段匹配到这个，则使用下面mapping的模版
+            "match_mapping_type": "string", 
+            "mapping": {   # 这里模版就定义了一个字段，使用english作为分词器，该分词器忽略is、a、an等
+              "type": "text", 
+              "analyzer": "english" 
+            } 
+          } 
+        } 
+      ] 
+     } 
   } 
 }
 ```
 #使用了模板
-```
+```shell
 PUT /my_index/my_type/3
 {
   "title_en": "this is my dog"
 }
 ```
 #没有使用模板
-```
+
+```shell
 PUT /my_index/my_type/5
 {
   "title": "this is my cat"
@@ -2560,9 +2661,9 @@ PUT /my_index/my_type/5
 GET my_index/my_type/_search
 {
   "query": {
-​    "match": {
-​      "title": "is"
-​    }
+    "match": {
+      "title": "is"    # 如果是english分词器会忽略is
+    }
   }
 }
 ```
@@ -2571,78 +2672,85 @@ GET my_index/my_type/_search
 一个field的设置是不能修改的，如果要修改一个field，那么应该重新按照新的mapping，建立一个index，然后将数据批量查询出来，重新用bulk api写入到index中。
 
 批量查询的时候，建议采用scroll api，并且采用多线程并发的方式来reindex数据，每次scroll就查询指定日期的一段数据，交给一个线程即可。
-```
+```shell
 PUT /index1/type1/4
 {
    "content":"1990-12-12"
 }
 
 GET /index1/type1/_search
-
 GET /index1/type1/_mapping
 ```
 #报错
-```
+```shell
 PUT /index1/type1/4
 {
    "content":"I am very happy."
 }
 ```
-#修改content的类型为string类型,报错，不允许修改
-```
+如果要添加，那么需要修改content的类型为string类型,
+
+执行以下报错，不允许修改（字段类型一旦确定无法修改）
+
+```shell
 PUT /index1/_mapping/type1
 {
   "properties": {
-​    "content":{
-​      "type": "text"
-​    }
+    "content":{
+      "type": "text"
+    }
   }
 }
 ```
-#创建一个新的索引，把index1索引中的数据查询出来导入到新的索引中
-#但是应用程序使用的是之前的索引，为了不用重启应用程序，给index1这个索引起个#别名
-```
-PUT /index1/_alias/index2
+修改字段，需要重建索引！
+
+#创建一个新的索引，把index1（旧索引）索引中的数据查询出来导入到新的索引中
+#但是之前的Java应用程序使用的是之前的索引，为了不用重启Java应用程序，给index1（旧索引）这个索引起个#别名
+
+```shell
+# 给旧的索引起一个别名：index2，第三方类似Java应用程序使用别名，而不是使用真实索引名称
+PUT /index1/_alias/index2  
 ```
 #创建新的索引，把content的类型改为字符串
-```
+```shell
 PUT /newindex
 {
   "mappings": {
-​    "type1":{
-​      "properties": {
-​        "content":{
-​          "type": "text"
-​        }
-​      }
-​    }
+    "type1":{
+      "properties": {
+        "content":{
+          "type": "text"
+        }
+      }
+    }
   }
 }
 ```
-#使用scroll批量查询
-```
+#如果数据量很大，使用scroll批量查询，再用bulk批量插入
+
+```shell
 GET /index1/type1/_search?scroll=1m
 {
   "query": {
-​    "match_all": {}
+    "match_all": {}
   },
   "sort": ["_doc"],
   "size": 2
 }
 ```
 #使用bulk批量写入新的索引
-```
+```shell
 POST /_bulk
 {"index":{"_index":"newindex","_type":"type1","_id":1}}
 {"content":"1982-12-12"}
 ```
 #将别名index2和新的索引关联，应用程序不用重启
-```
+```shell
 POST /_aliases
 {
   "actions": [
-​    {"remove": {"index":"index1","alias":"index2"}},
-​    {"add": {"index": "newindex","alias": "index2"}}
+    {"remove": {"index":"index1","alias":"index2"}},
+    {"add": {"index": "newindex","alias": "index2"}}
 ]
 }
 
@@ -2652,7 +2760,7 @@ GET index2/type1/_search
 
 倒排索引包括：
 
-   文档的列表，文档的数量，词条在每个文档中出现的次数，出现的位置，每个文档的长度，所有文档的平均长度
+文档的列表，文档的数量，词条在每个文档中出现的次数，出现的位置，每个文档的长度，所有文档的平均长度
 
 索引不变的原因：
 
@@ -2667,40 +2775,41 @@ GET index2/type1/_search
 ### 4.1在Java应用中实现查询文档
 
 pom中加入ElasticSearch6.2.4的依赖：
-```
+```xml
 <dependencies>
-​    <dependency>
-​      <groupId>org.elasticsearch.client</groupId>
-​      <artifactId>transport</artifactId>
-​      <version>6.2.4</version>
-​    </dependency>    
-​    
-​    <dependency>
-​      <groupId>junit</groupId>
-​      <artifactId>junit</artifactId>
-​      <version>4.12</version>
-​      <scope>test</scope>
-​    </dependency>
+     <dependency>
+       <groupId>org.elasticsearch.client</groupId>
+       <artifactId>transport</artifactId>
+       <version>6.2.4</version>
+     </dependency>    
+     
+     <dependency>
+       <groupId>junit</groupId>
+       <artifactId>junit</artifactId>
+       <version>4.12</version>
+       <scope>test</scope>
+     </dependency>
 
   </dependencies> 
 
   <build>
-​      <plugins>
-​			<!-- java编译插件 -->
-​			<plugin>
-​				<groupId>org.apache.maven.plugins</groupId>
-​				<artifactId>maven-compiler-plugin</artifactId>
-​				<version>3.2</version>
-​				<configuration>
-​					<source>1.8</source>
-​					<target>1.8</target>
-​					<encoding>UTF-8</encoding>
-​				</configuration>
-​			</plugin>
-​		</plugins>
+      <plugins>
+			<!-- java编译插件 -->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<version>3.2</version>
+				<configuration>
+					<source>1.8</source>
+					<target>1.8</target>
+					<encoding>UTF-8</encoding>
+				</configuration>
+			</plugin>
+		</plugins>
   </build>  
 ```
 ### 4.2 在Java应用中实现添加文档
+
 ```
               "{" +
                 "\"id\":\"1\"," +
@@ -2710,19 +2819,19 @@ pom中加入ElasticSearch6.2.4的依赖：
                 "\"url\":\"csdn.net/79239072\"" +
                 "}"
  XContentBuilder doc1 = XContentFactory.jsonBuilder()
-​                    .startObject()
-​                    .field("id","3")
-​                    .field("title","Java设计模式之单例模式")
-​                    .field("content","枚举单例模式可以防反射攻击。")
-​                    .field("postdate","2018-02-03")
-​                    .field("url","csdn.net/79247746")
-​                    .endObject();
-​        
-​        IndexResponse response = client.prepareIndex("index1", "blog", null)
-​                .setSource(doc1)
-​                .get();
-​        
-​    	System.out.println(response.status());
+                     .startObject()
+                     .field("id","3")
+                     .field("title","Java设计模式之单例模式")
+                     .field("content","枚举单例模式可以防反射攻击。")
+                     .field("postdate","2018-02-03")
+                     .field("url","csdn.net/79247746")
+                     .endObject();
+         
+         IndexResponse response = client.prepareIndex("index1", "blog", null)
+                 .setSource(doc1)
+                 .get();
+         
+     	System.out.println(response.status());
 ```
 ### 4.3在Java应用中实现删除文档
 ```
@@ -2735,14 +2844,14 @@ System.out.println(response.status());
 ### 4.4在Java应用中实现更新文档
 ```
  UpdateRequest request=new UpdateRequest();
-​        request.index("index1")
-​                .type("blog")
-​                .id("2")
-​                .doc(
-​                		XContentFactory.jsonBuilder().startObject()
-​                        .field("title","单例模式解读")
-​                        .endObject()
-​                );
+        request.index("index1")
+                .type("blog")
+                .id("2")
+                .doc(
+                		XContentFactory.jsonBuilder().startObject()
+                        .field("title","单例模式解读")
+                        .endObject()
+                );
 UpdateResponse response=client.update(request).get();
 
 //更新成功返回OK，否则返回NOT_FOUND
@@ -2752,24 +2861,24 @@ System.out.println(response.status());
 upsert方式：
 
 IndexRequest request1 =new IndexRequest("index1","blog","3")
-​                .source(
-​                		XContentFactory.jsonBuilder().startObject()
-​                                .field("id","3")
-​                                .field("title","装饰模式")
-​                                .field("content","动态地扩展一个对象的功能")
-​                                .field("postdate","2018-05-23")
-​                                .field("url","csdn.net/79239072")
-​                                .endObject()
-​                );
-​        UpdateRequest request2=new UpdateRequest("index1","blog","3")
-​                .doc(
-​                		XContentFactory.jsonBuilder().startObject()
-​                        .field("title","装饰模式解读")
-​                        .endObject()
-​                ).upsert(request1);
-​        
+                .source(
+                		XContentFactory.jsonBuilder().startObject()
+                                .field("id","3")
+                                .field("title","装饰模式")
+                                .field("content","动态地扩展一个对象的功能")
+                                .field("postdate","2018-05-23")
+                                .field("url","csdn.net/79239072")
+                                .endObject()
+                );
+        UpdateRequest request2=new UpdateRequest("index1","blog","3")
+                .doc(
+                		XContentFactory.jsonBuilder().startObject()
+                        .field("title","装饰模式解读")
+                        .endObject()
+                ).upsert(request1);
+        
 UpdateResponse response=client.update(request2).get();
-​        
+        
 //upsert操作成功返回OK，否则返回NOT_FOUND
 
 System.out.println(response.status());

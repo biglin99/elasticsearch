@@ -1,5 +1,5 @@
-
 # 第一章 ElasticSearch入门篇
+
 ## 第一节 ElasticSearch概述
 ##### 1.1ElasticSearch是一个基于Lucene的搜索服务器。它提供了一个分布式多用户能力的全文搜索引擎，基于RESTfulweb接口。ElasticSearch是用Java开发的，并作为Apache许可条款下的开放源码发布，是当前流行的企业级搜索引擎。设计用于云计算中，能够达到实时搜索，稳定，可靠，快速，安装使用方便。构建在全文检索开源软件Lucene之上的Elasticsearch，不仅能对海量规模的数据完成分布式索引与检索，还能提供数据聚合分析。据国际权威的数据库产品评测机构DBEngines的统计，在2016年1月，Elasticsearch已超过Solr等，成为排名第一的搜索引擎类应用
 
@@ -1983,6 +1983,7 @@ POST /lib/user/4/_update
 }
 ```
 5.删除文档
+
 ```shell
 POST /lib/user/4/_update
 {
@@ -2774,155 +2775,928 @@ GET index2/type1/_search
 
 ### 4.1在Java应用中实现查询文档
 
+数据准备
+
+```shell
+PUT /index1
+{
+  "settings": {
+    "number_of_shards": 3,
+    "number_of_replicas": 0
+  },
+  "mappings": {
+    "blog":{
+      "properties": {
+        "id":{
+          "type": "long"
+        },
+        "title":{
+          "type": "text",
+          "analyzer": "ik_max_word"
+        },
+        "content":{
+          "type": "text",
+          "analyzer": "ik_max_word"
+        },
+        "postdate":{
+          "type": "date"
+        },
+        "url":{
+          "type": "text"
+        }
+      }
+    }
+  }
+}
+# 添加数据
+PUT /index1/blog/1
+{
+    "id":"1",
+    "title":"Java设计模式之装饰模式",
+    "content":"在不必改变原类文件和使用继承的情况下，动态地扩展一个对象的功能。",
+    "postdate":"2018-12-13",
+    "url":"csdn.net/79239072"
+}
+```
+
 pom中加入ElasticSearch6.2.4的依赖：
 ```xml
-<dependencies>
-     <dependency>
-       <groupId>org.elasticsearch.client</groupId>
-       <artifactId>transport</artifactId>
-       <version>6.2.4</version>
-     </dependency>    
-     
-     <dependency>
-       <groupId>junit</groupId>
-       <artifactId>junit</artifactId>
-       <version>4.12</version>
-       <scope>test</scope>
-     </dependency>
+    <repositories>
+        <repository>
+            <id>maven-ali</id>
+            <url>http://maven.aliyun.com/nexus/content/groups/public/</url>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+            <snapshots>
+                <enabled>true</enabled>
+                <updatePolicy>always</updatePolicy>
+                <checksumPolicy>fail</checksumPolicy>
+            </snapshots>
+        </repository>
+    </repositories>
 
-  </dependencies> 
+    <dependencies>
+        <dependency>
+            <groupId>org.elasticsearch.client</groupId>
+            <artifactId>transport</artifactId>
+            <version>6.2.4</version>
+        </dependency>
 
-  <build>
-      <plugins>
-			<!-- java编译插件 -->
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-compiler-plugin</artifactId>
-				<version>3.2</version>
-				<configuration>
-					<source>1.8</source>
-					<target>1.8</target>
-					<encoding>UTF-8</encoding>
-				</configuration>
-			</plugin>
-		</plugins>
-  </build>  
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>4.12</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-core</artifactId>
+            <version>2.9.0</version>
+        </dependency>
+    </dependencies>
+    <build>
+        <plugins>
+            <!-- java编译插件 -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.2</version>
+                <configuration>
+                    <source>1.8</source>
+                    <target>1.8</target>
+                    <encoding>UTF-8</encoding>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 ```
-### 4.2 在Java应用中实现添加文档
+### 4.2 连接集群
 
-```
-              "{" +
-                "\"id\":\"1\"," +
-                "\"title\":\"Java设计模式之装饰模式\"," +
-                "\"content\":\"在不必改变原类文件和使用继承的情况下，动态地扩展一个对象的功能。\"," +
-                "\"postdate\":\"2018-05-20 14:38:00\"," +
-                "\"url\":\"csdn.net/79239072\"" +
-                "}"
- XContentBuilder doc1 = XContentFactory.jsonBuilder()
-                     .startObject()
-                     .field("id","3")
-                     .field("title","Java设计模式之单例模式")
-                     .field("content","枚举单例模式可以防反射攻击。")
-                     .field("postdate","2018-02-03")
-                     .field("url","csdn.net/79247746")
-                     .endObject();
-         
-         IndexResponse response = client.prepareIndex("index1", "blog", null)
-                 .setSource(doc1)
-                 .get();
-         
-     	System.out.println(response.status());
-```
-### 4.3在Java应用中实现删除文档
-```
-DeleteResponse response=client.prepareDelete("index1","blog","SzYJjWMBjSAutsuLRP_P").get();
+```java
+public class EsDemo {
+    private static Settings settings;
+    private static TransportClient client;
 
-//删除成功返回OK，否则返回NOT_FOUND
-
-System.out.println(response.status());
-```
-### 4.4在Java应用中实现更新文档
-```
- UpdateRequest request=new UpdateRequest();
-        request.index("index1")
-                .type("blog")
-                .id("2")
-                .doc(
-                		XContentFactory.jsonBuilder().startObject()
-                        .field("title","单例模式解读")
-                        .endObject()
-                );
-UpdateResponse response=client.update(request).get();
-
-//更新成功返回OK，否则返回NOT_FOUND
-
-System.out.println(response.status());
-
-upsert方式：
-
-IndexRequest request1 =new IndexRequest("index1","blog","3")
-                .source(
-                		XContentFactory.jsonBuilder().startObject()
-                                .field("id","3")
-                                .field("title","装饰模式")
-                                .field("content","动态地扩展一个对象的功能")
-                                .field("postdate","2018-05-23")
-                                .field("url","csdn.net/79239072")
-                                .endObject()
-                );
-        UpdateRequest request2=new UpdateRequest("index1","blog","3")
-                .doc(
-                		XContentFactory.jsonBuilder().startObject()
-                        .field("title","装饰模式解读")
-                        .endObject()
-                ).upsert(request1);
-        
-UpdateResponse response=client.update(request2).get();
-        
-//upsert操作成功返回OK，否则返回NOT_FOUND
-
-System.out.println(response.status());
-```
-### 4.5在Java应用中实现批量操作
-```
- MultiGetResponse mgResponse = client.prepareMultiGet()
-	                .add("index1","blog","3","2")
-	                .add("lib3","user","1","2","3")
-	                .get();
-		    
-for(MultiGetItemResponse response:mgResponse){
-	            GetResponse rp=response.getResponse();
-	            if(rp!=null && rp.isExists()){
-	                System.out.println(rp.getSourceAsString());
-	            }
-	        }
-	        
-bulk：
-
-BulkRequestBuilder bulkRequest = client.prepareBulk();
-
-bulkRequest.add(client.prepareIndex("lib2", "books", "4")
-                .setSource(XContentFactory.jsonBuilder()
-                        .startObject()
-                        .field("title", "python")
-                        .field("price", 68)
-                        .endObject()
-                )
-        );
-bulkRequest.add(client.prepareIndex("lib2", "books", "5")
-                .setSource(XContentFactory.jsonBuilder()
-                        .startObject()
-                        .field("title", "VR")
-                        .field("price", 38)
-                        .endObject()
-                )
-        );
-        //批量执行
-BulkResponse bulkResponse = bulkRequest.get();
-        
-System.out.println(bulkResponse.status());
-if (bulkResponse.hasFailures()) {
-            
-            System.out.println("存在失败操作");
+    @Before
+    public void before() {
+        settings = Settings.builder().put("cluster.name", "elasticsearch").build();
+        try {
+            client = new PreBuiltTransportClient(settings)
+                    .addTransportAddress(new TransportAddress(InetAddress.getByName("192.168.9.222"), 9300));
+        } catch (UnknownHostException e) {
+            e.printStackTrace();
         }
+    }
+```
+### 4.3 查询api
+
+查询指定id
+
+```java
+@Test
+public void test1() throws Exception {
+    GetResponse response = client.prepareGet("lib3", "user", "1").execute().actionGet();
+    System.out.println(response.getSourceAsString());
+    client.close();
+}
+```
+
+mget查询：
+
+```java
+@Test
+public void mget() {
+    MultiGetResponse multiGetItemResponses = client.prepareMultiGet()
+            .add("index1", "blog", "1", "2"
+            ).add("lib3", "user", "1", "2", "3").get();
+    for (MultiGetItemResponse item : multiGetItemResponses) {
+        GetResponse response = item.getResponse();
+        if (response != null && response.isExists()) {
+            System.out.println(response.getSourceAsString());
+        }
+    }
+}
+```
+
+
+
+查询：
+match query
+multi match query
+term/terms
+
+```java
+@Test
+public void testMatch() {
+
+   /*MatchAllQueryBuilder builder = QueryBuilders.matchAllQuery();*/
+   /* MatchQueryBuilder builder = QueryBuilders.matchQuery("interests", "dance");*/
+
+    /* // 显示查询的词内容，然后才是字段
+    MultiMatchQueryBuilder builder = QueryBuilders.multiMatchQuery("shopping guangfeng", "interests","address");*/
+
+    /*TermQueryBuilder builder = QueryBuilders.termQuery("interests", "shopping");*/
+
+    /*TermsQueryBuilder builder = QueryBuilders.termsQuery("interests", "shopping","drink");*/
+
+    /*RangeQueryBuilder builder = QueryBuilders.rangeQuery("birthday").from("2000-01-01").to("2016-01-21");*/
+
+    /*PrefixQueryBuilder builder = QueryBuilders.prefixQuery("interests", "dri");*/
+
+    /*WildcardQueryBuilder builder = QueryBuilders.wildcardQuery("interests", "*");*/
+
+    /*FuzzyQueryBuilder builder = QueryBuilders.fuzzyQuery("interests", "shapping");*/
+
+    /*// 查询type下所有
+    TypeQueryBuilder builder = QueryBuilders.typeQuery("user");*/
+
+    IdsQueryBuilder builder = QueryBuilders.idsQuery("user").addIds("1", "2");
+
+    SearchResponse searchResponse = client.prepareSearch("lib3").setQuery(builder).get();
+
+    SearchHits hits = searchResponse.getHits();
+    for (SearchHit hit : hits) {
+        System.out.println(hit.getSourceAsString());
+    }
+    client.close();
+}
+```
+
+### 4.4插入文档
+```java
+/**
+ *  插入数据
+ */
+@Test
+public void testInsert() {
+    try {
+        XContentBuilder doc = XContentFactory.jsonBuilder().startObject()
+       .field("id", "1")
+       .field("title", "Java设计模式之装饰模式")
+       .field("content", "在不必改变原类文件和使用继承的情况下，动态地扩展一个对象的功能")
+       .field("postdate", new SimpleDateFormat("yyyy-MM-dd").format(new Date()))
+       .field("url", "csdn.net/79239072").endObject();
+        System.out.println(doc.string());
+        // 添加文档
+        IndexResponse response = client.prepareIndex("index1", "blog", "1").setSource(doc).get();
+        System.out.println(response.status());
+
+    } catch (IOException e) {
+        e.printStackTrace();
+    }
+    client.close();
+}
+
+```
+
+### 4.5 删除文档
+
+```java
+/**
+ * 删除文档
+ */
+@Test
+public void testDelete() {
+    DeleteResponse deleteResponse = client.prepareDelete("index1", "blog", "11").get();
+    System.out.println(deleteResponse.status());
+    client.close();
+}
+```
+查询删除：
+```java
+/**
+ * 查询删除DeleteByQuery
+ */
+@Test
+public void testDeleteByQuery() {
+    BulkByScrollResponse response = DeleteByQueryAction.INSTANCE.newRequestBuilder(client)
+            .filter(QueryBuilders.matchQuery("title", "工厂"))
+            .source("index1")
+            .get();
+    long deleted = response.getDeleted();
+    System.out.println(deleted);
+}
+```
+### 4.6 更新文档
+
+```java
+/**
+ * client.update 以及client.prepareUpdate
+ * 直接调用client.prepareUpdate
+ */
+@Test
+public void testPostUpdate() {
+
+    try {
+        UpdateResponse updateResponse = client.prepareUpdate("index1", "blog", "1").setDoc(XContentFactory.jsonBuilder().startObject()
+                .field("title", "单例设计模式").endObject()).get();
+        System.out.println(updateResponse.status());
+    } catch (IOException e) {
+        e.printStackTrace();
+    }
+}
+
+
+/**
+ * 调用client.update,两者区别？？
+ */
+@Test
+public void testPostUpdate2() {
+
+    try {
+        UpdateRequest updateRequest = new UpdateRequest().index("index1").type("blog").id("1").doc(XContentFactory.jsonBuilder().startObject().field("content", "单例设计模式").endObject());
+        UpdateResponse response = client.update(updateRequest).get();
+        System.out.println(response.status());
+    } catch (IOException e) {
+        e.printStackTrace();
+    } catch (InterruptedException e) {
+        e.printStackTrace();
+    } catch (ExecutionException e) {
+        e.printStackTrace();
+    }
+}
+
+/**
+ * 如果存在则更新，否则插入indexRequest内容。
+ * update or insert 如果存在则update，不存在则insert
+ */
+@Test
+public void testUpsert() {
+    try {
+        IndexRequest indexRequest = new IndexRequest("index1", "blog", "2").source(XContentFactory.jsonBuilder().startObject()
+                .field("id", "1")
+                .field("title", "工厂模式")
+                .field("content", "静态工厂，实例工厂，不存在则isnert")
+                .field("postdate", new SimpleDateFormat("yyyy-MM-dd").format(new Date()))
+                .field("url", "csdn.net/marljh").endObject());
+
+        UpdateRequest updateRequest = new UpdateRequest("index1", "blog", "2").doc(XContentFactory.jsonBuilder().startObject()
+                .field("content", "这是工厂模式，设计模式，这是已经存在则update")
+                .endObject()).upsert(indexRequest);
+
+        UpdateResponse updateResponse = client.update(updateRequest).get();
+        System.out.println(updateResponse.status());
+    } catch (IOException e) {
+        e.printStackTrace();
+    } catch (InterruptedException e) {
+        e.printStackTrace();
+    } catch (ExecutionException e) {
+        e.printStackTrace();
+    }
+}
+```
+### 4.7 bulk操作
+```java
+@Test
+public void testBulk() {
+    XContentBuilder baidu = null;
+    XContentBuilder google = null;
+    try {
+        baidu = XContentFactory.jsonBuilder().startObject()
+                .field("id", "3")
+                .field("title", "baidu")
+                .field("content", "baidu")
+                .field("postdate", new SimpleDateFormat("yyyy-MM-dd").format(new Date()))
+                .field("url", "www.baidu.com").endObject();
+        google = XContentFactory.jsonBuilder().startObject()
+                .field("id", "4")
+                .field("title", "google")
+                .field("content", "googlel")
+                .field("postdate", new SimpleDateFormat("yyyy-MM-dd").format(new Date()))
+                .field("url", "www.google").endObject();
+    } catch (IOException e) {
+        e.printStackTrace();
+    }
+    BulkRequestBuilder bulkRequestBuilder = client.prepareBulk();
+    // 不设定id，则自动创建
+    bulkRequestBuilder.add(client.prepareIndex("index1", "blog", "3").setSource(baidu));
+    bulkRequestBuilder.add(client.prepareIndex("index1", "blog", "4").setSource(google));
+
+    BulkResponse bulkItemResponses = null;
+
+    bulkItemResponses = bulkRequestBuilder.get();
+    // 下面这个代码需要抛出2个异常，实际使用没啥区别!
+    // bulkItemResponses = bulkRequestBuilder.execute().get();
+
+    System.out.println(bulkItemResponses.status());
+    if (bulkItemResponses.hasFailures()) {
+        System.out.println("bulk has failures!");
+        String failureMessage = bulkItemResponses.buildFailureMessage();
+        System.out.println(failureMessage);
+    }
+}
+```
+### 4.8 聚合查询、q查询、bool查询、分组聚合、过滤filter、missing统计
+```java
+/**
+ * 聚合函数 max min avg cardinality
+ */
+@Test
+public void testAggs() {
+/*    AggregationBuilder agg = AggregationBuilders.max("aggMax").field("age");
+    SearchResponse searchResponse = client.prepareSearch("lib3").addAggregation(agg).get();
+    Max max = searchResponse.getAggregations().get("aggMax");
+    System.out.println(max.getValue());*/
+
+
+    /*AggregationBuilder agg = AggregationBuilders.min("aggMin").field("age");
+    SearchResponse searchResponse = client.prepareSearch("lib3").addAggregation(agg).get();
+    Min min = searchResponse.getAggregations().get("aggMin");
+    System.out.println(min.getValue());*/
+
+    AvgAggregationBuilder avgAggregationBuilder = AggregationBuilders.avg("avgAge").field("age");
+    SearchResponse searchResponse = client.prepareSearch("lib3").addAggregation(avgAggregationBuilder).get();
+    Avg avgAge = searchResponse.getAggregations().get("avgAge");
+    System.out.println(avgAge.getValue());
+
+    /*AggregationBuilder card = AggregationBuilders.cardinality("aggCardinality").field("age");
+    SearchResponse searchResponse = client.prepareSearch("lib3").addAggregation(card).get();
+    Cardinality cardinality = searchResponse.getAggregations().get("aggCardinality");
+    System.out.println(cardinality.getValue());*/
+}
+
+/**
+ * 类似查询：GET /myindex/article/_search?q=fullcontent:htitle,document
+ */
+@Test
+public void testQ() {
+    /*//类似指定字段查询：GET /myindex/article/_search?q=fullcontent:htitle,document
+    CommonTermsQueryBuilder builder = QueryBuilders.commonTermsQuery("name", "li si");*/
+    /*//类似查询：GET /myindex/article/_search?q=htitle,document
+    QueryStringQueryBuilder builder = QueryBuilders.queryStringQuery("shopping");*/
+    // 类似
+    SimpleQueryStringBuilder builder = QueryBuilders.simpleQueryStringQuery("dance tongfan");
+    SearchResponse searchResponse = client.prepareSearch("lib3").setQuery(builder).get();
+    SearchHits hits = searchResponse.getHits();
+    for (SearchHit hit : hits) {
+        System.out.println(hit.getSourceAsString());
+    }
+}
+
+/**
+ * 组合查询bool
+ */
+@Test
+public void testBool() {
+
+   /* BoolQueryBuilder builder = QueryBuilders.boolQuery().must(QueryBuilders.matchQuery("interests", "dance shopping"))
+            .should(QueryBuilders.matchQuery("name","ljh"))
+            .mustNot(QueryBuilders.matchQuery("interests","reading"))
+            .filter(QueryBuilders.rangeQuery("birthday").gte("2010-10-10").format("yyyy-MM-dd"));*/
+    // 常量分数
+//        ConstantScoreQueryBuilder builder = QueryBuilders.constantScoreQuery(QueryBuilders.termQuery("name", "ljh"));
+    QueryStringQueryBuilder builder = QueryBuilders.queryStringQuery("ljh");
+    SearchResponse searchResponse = client.prepareSearch("lib3").setQuery(builder).get();
+    System.out.println(searchResponse.getHits().getMaxScore());
+    SearchHits hits = searchResponse.getHits();
+    for (SearchHit hit : hits) {
+        System.out.println(hit.getSourceAsString());
+    }
+}
+
+/**
+ * 分组聚合
+ * select age,count(1) from dual group by age;
+ */
+@Test
+public void testBucket() {
+    // 分组聚合
+    TermsAggregationBuilder agg = AggregationBuilders.terms("terms").field("age");
+    SearchResponse searchResponse = client.prepareSearch("lib3").addAggregation(agg).execute().actionGet();
+    Terms terms = searchResponse.getAggregations().get("terms");
+    for (Terms.Bucket entry : terms.getBuckets()) {
+        System.out.println(entry.getKey() + ":" + entry.getDocCount());
+    }
+}
+
+/**
+ * 过滤filter
+ */
+@Test
+public void testFilter() {
+    TermsQueryBuilder termsQueryBuilder = QueryBuilders.termsQuery("age", "20");
+    FilterAggregationBuilder filterAggregationBuilder = AggregationBuilders.filter("filter", termsQueryBuilder);
+    SearchResponse searchResponse = client.prepareSearch("lib3").addAggregation(filterAggregationBuilder).execute().actionGet();
+    Filter filter = searchResponse.getAggregations().get("filter");
+    System.out.println(filter.getDocCount());
+}
+
+/**
+ * filter聚合,打印结果可以根据指定key来输出：
+ * dance_count:4
+ * drink_count:4
+ */
+@Test
+public void testAGGFilter() {
+    FiltersAggregationBuilder filtersAggregationBuilder = AggregationBuilders.filters("filters",
+            new FiltersAggregator.KeyedFilter("dance_count", QueryBuilders.termsQuery("interests", "dance"))
+            , new FiltersAggregator.KeyedFilter("drink_count", QueryBuilders.termsQuery("interests", "drink")));
+    SearchResponse searchResponse = client.prepareSearch("lib3").addAggregation(filtersAggregationBuilder).execute().actionGet();
+    Filters filters = searchResponse.getAggregations().get("filters");
+    for (Filters.Bucket entry : filters.getBuckets()) {
+        System.out.println(entry.getKey() + ":" + entry.getDocCount());
+    }
+}
+
+/**
+ * 打印结果：
+ * all:6
+ * middle:2
+ * from:2
+ */
+@Test
+public void testAGGRange() {
+    RangeAggregationBuilder rangeAggregationBuilder = AggregationBuilders.range("my_range").field("age")
+            .addUnboundedTo("all", 50) // (*,to)
+            .addRange("middle", 25, 50) // [25,50)
+            .addUnboundedFrom("from", 25);// [from,*)
+    SearchResponse searchResponse = client.prepareSearch("lib3").addAggregation(rangeAggregationBuilder).execute().actionGet();
+    Range range = searchResponse.getAggregations().get("my_range");
+    for (Range.Bucket entry : range.getBuckets()) {
+        System.out.println(entry.getKey() + ":" + entry.getDocCount());
+    }
+}
+
+/**
+ * 字段没有值，值为null时，会统计出来,如果字段是不存在的，则个数就是索引下的全部
+ * {"value_missinig":{"doc_count":0}}
+ */
+@Test
+public void testMissing() {
+
+    MissingAggregationBuilder missingAggregationBuilder = AggregationBuilders.missing("value_missinig").field("age");
+    SearchResponse searchResponse = client.prepareSearch("demo").addAggregation(missingAggregationBuilder).execute().actionGet();
+    Missing missing = searchResponse.getAggregations().get("value_missinig");
+    System.out.println(missing.toString());
+
+}
+```
+### 4.9 集群信息获取
+```java
+/**
+ * 集群信息查询
+ */
+@Test
+public void testManagerCluster() {
+    ClusterHealthResponse healths = client.admin().cluster().prepareHealth().get();
+    String clusterName = healths.getClusterName();
+    System.out.println("clusterName : " + clusterName);
+
+    int numberOfDataNodes = healths.getNumberOfDataNodes();
+    System.out.println("numberOfDataNodes : "+numberOfDataNodes);
+
+    for(ClusterIndexHealth health:healths.getIndices().values()){
+        String index = health.getIndex();
+        int numberOfShards = health.getNumberOfShards();
+        int numberOfReplicas = health.getNumberOfReplicas();
+        ClusterHealthStatus status = health.getStatus();
+        System.out.println(status.toString());
+        System.out.printf("index= %s,numberOfShards=%s,numberOfReplicas=%s\n",index,numberOfShards,numberOfReplicas);
+
+    }
+}
+```
+### 4.10 完整代码
+```java
+import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
+import org.elasticsearch.action.bulk.BulkRequestBuilder;
+import org.elasticsearch.action.bulk.BulkResponse;
+import org.elasticsearch.action.delete.DeleteResponse;
+import org.elasticsearch.action.get.GetResponse;
+import org.elasticsearch.action.get.MultiGetItemResponse;
+import org.elasticsearch.action.get.MultiGetResponse;
+import org.elasticsearch.action.index.IndexRequest;
+import org.elasticsearch.action.index.IndexResponse;
+import org.elasticsearch.action.search.SearchResponse;
+import org.elasticsearch.action.update.UpdateRequest;
+import org.elasticsearch.action.update.UpdateResponse;
+import org.elasticsearch.client.transport.TransportClient;
+import org.elasticsearch.cluster.health.ClusterHealthStatus;
+import org.elasticsearch.cluster.health.ClusterIndexHealth;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.transport.TransportAddress;
+import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.elasticsearch.common.xcontent.XContentFactory;
+import org.elasticsearch.index.query.*;
+import org.elasticsearch.index.reindex.BulkByScrollResponse;
+import org.elasticsearch.index.reindex.DeleteByQueryAction;
+import org.elasticsearch.search.SearchHit;
+import org.elasticsearch.search.SearchHits;
+import org.elasticsearch.search.aggregations.AggregationBuilders;
+import org.elasticsearch.search.aggregations.bucket.filter.*;
+import org.elasticsearch.search.aggregations.bucket.missing.Missing;
+import org.elasticsearch.search.aggregations.bucket.missing.MissingAggregationBuilder;
+import org.elasticsearch.search.aggregations.bucket.range.Range;
+import org.elasticsearch.search.aggregations.bucket.range.RangeAggregationBuilder;
+import org.elasticsearch.search.aggregations.bucket.terms.Terms;
+import org.elasticsearch.search.aggregations.bucket.terms.TermsAggregationBuilder;
+import org.elasticsearch.search.aggregations.metrics.avg.Avg;
+import org.elasticsearch.search.aggregations.metrics.avg.AvgAggregationBuilder;
+import org.elasticsearch.transport.client.PreBuiltTransportClient;
+import org.junit.Before;
+import org.junit.Test;
+
+import java.io.IOException;
+import java.net.InetAddress;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+
+public class EsDemo {
+    private static Settings settings;
+    private static TransportClient client;
+
+    @Before
+    public void before() throws Exception {
+        settings = Settings.builder().put("cluster.name", "elasticsearch").build();
+        client = new PreBuiltTransportClient(settings)
+                .addTransportAddress(new TransportAddress(InetAddress.getByName("192.168.9.222"), 9300));
+    }
+
+    /**
+     * 查询api
+     */
+    @Test
+    public void test1() throws Exception {
+        GetResponse response = client.prepareGet("lib3", "user", "1").execute().actionGet();
+        System.out.println(response.getSourceAsString());
+        client.close();
+    }
+
+    /**
+     * 查询API
+     * match query
+     * multi match query
+     * term/terms
+     */
+    @Test
+    public void testMatch() {
+       /*MatchAllQueryBuilder builder = QueryBuilders.matchAllQuery();*/
+       /* MatchQueryBuilder builder = QueryBuilders.matchQuery("interests", "dance");*/
+
+        /* // 显示查询的词内容，然后才是字段
+        MultiMatchQueryBuilder builder = QueryBuilders.multiMatchQuery("shopping guangfeng", "interests","address");*/
+
+        /*TermQueryBuilder builder = QueryBuilders.termQuery("interests", "shopping");*/
+
+        /*TermsQueryBuilder builder = QueryBuilders.termsQuery("interests", "shopping","drink");*/
+
+        /*RangeQueryBuilder builder = QueryBuilders.rangeQuery("birthday").from("2000-01-01").to("2016-01-21");*/
+
+        /*PrefixQueryBuilder builder = QueryBuilders.prefixQuery("interests", "dri");*/
+
+        /*WildcardQueryBuilder builder = QueryBuilders.wildcardQuery("interests", "*");*/
+
+        /*FuzzyQueryBuilder builder = QueryBuilders.fuzzyQuery("interests", "shapping");*/
+
+        /*// 查询type下所有
+        TypeQueryBuilder builder = QueryBuilders.typeQuery("user");*/
+
+        IdsQueryBuilder builder = QueryBuilders.idsQuery("user").addIds("1", "2");
+
+        SearchResponse searchResponse = client.prepareSearch("lib3").setQuery(builder).get();
+
+        SearchHits hits = searchResponse.getHits();
+        for (SearchHit hit : hits) {
+            System.out.println(hit.getSourceAsString());
+        }
+        client.close();
+    }
+
+    /**
+     * 插入数据
+     */
+    @Test
+    public void testInsert() throws Exception {
+        XContentBuilder doc = XContentFactory.jsonBuilder().startObject()
+                .field("id", "1")
+                .field("title", "Java设计模式之装饰模式")
+                .field("content", "在不必改变原类文件和使用继承的情况下，动态地扩展一个对象的功能。")
+                .field("postdate", new SimpleDateFormat("yyyy-MM-dd").format(new Date()))
+                .field("url", "csdn.net/79239072").endObject();
+        System.out.println(doc.string());
+        // 添加文档
+        IndexResponse response = client.prepareIndex("index1", "blog", "1").setSource(doc).get();
+        System.out.println(response.status());
+        client.close();
+    }
+
+    /**
+     * 删除文档
+     */
+    @Test
+    public void testDelete() {
+        DeleteResponse deleteResponse = client.prepareDelete("index1", "blog", "11").get();
+        System.out.println(deleteResponse.status());
+        client.close();
+    }
+
+    /**
+     * client.update 以及client.prepareUpdate
+     * 直接调用client.prepareUpdate
+     */
+    @Test
+    public void testPostUpdate() throws Exception {
+        UpdateResponse updateResponse = client.prepareUpdate("index1", "blog", "1").setDoc(XContentFactory.jsonBuilder().startObject()
+                .field("title", "单例设计模式").endObject()).get();
+        System.out.println(updateResponse.status());
+    }
+
+    /**
+     * 调用client.update,两者区别？？
+     */
+    @Test
+    public void testPostUpdate2() throws Exception {
+        UpdateRequest updateRequest = new UpdateRequest().index("index1").type("blog").id("1").doc(XContentFactory.jsonBuilder().startObject().field("content", "单例设计模式").endObject());
+        UpdateResponse response = client.update(updateRequest).get();
+        System.out.println(response.status());
+    }
+
+    /**
+     * 如果存在则更新，否则插入indexRequest内容。
+     * update or insert 如果存在则update，不存在则insert
+     */
+    @Test
+    public void testUpsert() throws Exception {
+        IndexRequest indexRequest = new IndexRequest("index1", "blog", "2").source(XContentFactory.jsonBuilder().startObject()
+                .field("id", "1")
+                .field("title", "工厂模式")
+                .field("content", "静态工厂，实例工厂，不存在则isnert")
+                .field("postdate", new SimpleDateFormat("yyyy-MM-dd").format(new Date()))
+                .field("url", "csdn.net/marljh").endObject());
+
+        UpdateRequest updateRequest = new UpdateRequest("index1", "blog", "2").doc(XContentFactory.jsonBuilder().startObject()
+                .field("content", "这是工厂模式，设计模式，这是已经存在则update")
+                .endObject()).upsert(indexRequest);
+
+        UpdateResponse updateResponse = client.update(updateRequest).get();
+        System.out.println(updateResponse.status());
+    }
+
+    @Test
+    public void mget() {
+        MultiGetResponse multiGetItemResponses = client.prepareMultiGet()
+                .add("index1", "blog", "1", "2"
+                ).add("lib3", "user", "1", "2", "3").get();
+        for (MultiGetItemResponse item : multiGetItemResponses) {
+            GetResponse response = item.getResponse();
+            if (response != null && response.isExists()) {
+                System.out.println(response.getSourceAsString());
+            }
+        }
+    }
+
+    @Test
+    public void testBulk() {
+        XContentBuilder baidu = null;
+        XContentBuilder google = null;
+        try {
+            baidu = XContentFactory.jsonBuilder().startObject()
+                    .field("id", "3")
+                    .field("title", "baidu")
+                    .field("content", "baidu")
+                    .field("postdate", new SimpleDateFormat("yyyy-MM-dd").format(new Date()))
+                    .field("url", "www.baidu.com").endObject();
+            google = XContentFactory.jsonBuilder().startObject()
+                    .field("id", "4")
+                    .field("title", "google")
+                    .field("content", "googlel")
+                    .field("postdate", new SimpleDateFormat("yyyy-MM-dd").format(new Date()))
+                    .field("url", "www.google").endObject();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        BulkRequestBuilder bulkRequestBuilder = client.prepareBulk();
+        // 不设定id，则自动创建
+        bulkRequestBuilder.add(client.prepareIndex("index1", "blog", "3").setSource(baidu));
+        bulkRequestBuilder.add(client.prepareIndex("index1", "blog", "4").setSource(google));
+
+        BulkResponse bulkItemResponses = null;
+
+        bulkItemResponses = bulkRequestBuilder.get();
+        // 下面这个代码需要抛出2个异常，实际使用没啥区别!
+        // bulkItemResponses = bulkRequestBuilder.execute().get();
+
+        System.out.println(bulkItemResponses.status());
+        if (bulkItemResponses.hasFailures()) {
+            System.out.println("bulk has failures!");
+            String failureMessage = bulkItemResponses.buildFailureMessage();
+            System.out.println(failureMessage);
+        }
+    }
+
+    /**
+     * 查询删除DeleteByQuery
+     */
+    @Test
+    public void testDeleteByQuery() {
+        BulkByScrollResponse response = DeleteByQueryAction.INSTANCE.newRequestBuilder(client)
+                .filter(QueryBuilders.matchQuery("title", "工厂"))
+                .source("index1")
+                .get();
+        long deleted = response.getDeleted();
+        System.out.println(deleted);
+    }
+
+    /**
+     * 聚合函数 max min avg cardinality
+     */
+    @Test
+    public void testAggs() {
+    /*    AggregationBuilder agg = AggregationBuilders.max("aggMax").field("age");
+        SearchResponse searchResponse = client.prepareSearch("lib3").addAggregation(agg).get();
+        Max max = searchResponse.getAggregations().get("aggMax");
+        System.out.println(max.getValue());*/
+
+        /*AggregationBuilder agg = AggregationBuilders.min("aggMin").field("age");
+        SearchResponse searchResponse = client.prepareSearch("lib3").addAggregation(agg).get();
+        Min min = searchResponse.getAggregations().get("aggMin");
+        System.out.println(min.getValue());*/
+
+        AvgAggregationBuilder avgAggregationBuilder = AggregationBuilders.avg("avgAge").field("age");
+        SearchResponse searchResponse = client.prepareSearch("lib3").addAggregation(avgAggregationBuilder).get();
+        Avg avgAge = searchResponse.getAggregations().get("avgAge");
+        System.out.println(avgAge.getValue());
+
+        /*AggregationBuilder card = AggregationBuilders.cardinality("aggCardinality").field("age");
+        SearchResponse searchResponse = client.prepareSearch("lib3").addAggregation(card).get();
+        Cardinality cardinality = searchResponse.getAggregations().get("aggCardinality");
+        System.out.println(cardinality.getValue());*/
+    }
+
+    /**
+     * 类似查询：GET /myindex/article/_search?q=fullcontent:htitle,document
+     */
+    @Test
+    public void testQ() {
+        /*//类似指定字段查询：GET /myindex/article/_search?q=fullcontent:htitle,document
+        CommonTermsQueryBuilder builder = QueryBuilders.commonTermsQuery("name", "li si");*/
+        /*//类似查询：GET /myindex/article/_search?q=htitle,document
+        QueryStringQueryBuilder builder = QueryBuilders.queryStringQuery("shopping");*/
+        // 类似
+        SimpleQueryStringBuilder builder = QueryBuilders.simpleQueryStringQuery("dance tongfan");
+        SearchResponse searchResponse = client.prepareSearch("lib3").setQuery(builder).get();
+        SearchHits hits = searchResponse.getHits();
+        for (SearchHit hit : hits) {
+            System.out.println(hit.getSourceAsString());
+        }
+    }
+
+    /**
+     * 组合查询bool
+     */
+    @Test
+    public void testBool() {
+       /* BoolQueryBuilder builder = QueryBuilders.boolQuery().must(QueryBuilders.matchQuery("interests", "dance shopping"))
+                .should(QueryBuilders.matchQuery("name","ljh"))
+                .mustNot(QueryBuilders.matchQuery("interests","reading"))
+                .filter(QueryBuilders.rangeQuery("birthday").gte("2010-10-10").format("yyyy-MM-dd"));*/
+        // 常量分数
+        // ConstantScoreQueryBuilder builder = QueryBuilders.constantScoreQuery(QueryBuilders.termQuery("name", "ljh"));
+        QueryStringQueryBuilder builder = QueryBuilders.queryStringQuery("ljh");
+        SearchResponse searchResponse = client.prepareSearch("lib3").setQuery(builder).get();
+        System.out.println(searchResponse.getHits().getMaxScore());
+        SearchHits hits = searchResponse.getHits();
+        for (SearchHit hit : hits) {
+            System.out.println(hit.getSourceAsString());
+        }
+    }
+
+    /**
+     * 分组聚合
+     * select age,count(1) from dual group by age;
+     */
+    @Test
+    public void testBucket() {
+        // 分组聚合
+        TermsAggregationBuilder agg = AggregationBuilders.terms("terms").field("age");
+        SearchResponse searchResponse = client.prepareSearch("lib3").addAggregation(agg).execute().actionGet();
+        Terms terms = searchResponse.getAggregations().get("terms");
+        for (Terms.Bucket entry : terms.getBuckets()) {
+            System.out.println(entry.getKey() + ":" + entry.getDocCount());
+        }
+    }
+
+    /**
+     * 过滤filter
+     */
+    @Test
+    public void testFilter() {
+        TermsQueryBuilder termsQueryBuilder = QueryBuilders.termsQuery("age", "20");
+        FilterAggregationBuilder filterAggregationBuilder = AggregationBuilders.filter("filter", termsQueryBuilder);
+        SearchResponse searchResponse = client.prepareSearch("lib3").addAggregation(filterAggregationBuilder).execute().actionGet();
+        Filter filter = searchResponse.getAggregations().get("filter");
+        System.out.println(filter.getDocCount());
+    }
+
+    /**
+     * filter聚合,打印结果可以根据指定key来输出：
+     * dance_count:4
+     * drink_count:4
+     */
+    @Test
+    public void testAGGFilter() {
+        FiltersAggregationBuilder filtersAggregationBuilder = AggregationBuilders.filters("filters",
+                new FiltersAggregator.KeyedFilter("dance_count", QueryBuilders.termsQuery("interests", "dance"))
+                , new FiltersAggregator.KeyedFilter("drink_count", QueryBuilders.termsQuery("interests", "drink")));
+        SearchResponse searchResponse = client.prepareSearch("lib3").addAggregation(filtersAggregationBuilder).execute().actionGet();
+        Filters filters = searchResponse.getAggregations().get("filters");
+        for (Filters.Bucket entry : filters.getBuckets()) {
+            System.out.println(entry.getKey() + ":" + entry.getDocCount());
+        }
+    }
+
+    /**
+     * 打印结果：
+     * all:6
+     * middle:2
+     * from:2
+     */
+    @Test
+    public void testAGGRange() {
+        RangeAggregationBuilder rangeAggregationBuilder = AggregationBuilders.range("my_range").field("age")
+                .addUnboundedTo("all", 50) // (*,to)
+                .addRange("middle", 25, 50) // [25,50)
+                .addUnboundedFrom("from", 25);// [from,*)
+        SearchResponse searchResponse = client.prepareSearch("lib3").addAggregation(rangeAggregationBuilder).execute().actionGet();
+        Range range = searchResponse.getAggregations().get("my_range");
+        for (Range.Bucket entry : range.getBuckets()) {
+            System.out.println(entry.getKey() + ":" + entry.getDocCount());
+        }
+    }
+
+    /**
+     * 字段没有值，值为null时，会统计出来,如果字段是不存在的，则个数就是索引下的全部
+     * {"value_missinig":{"doc_count":0}}
+     */
+    @Test
+    public void testMissing() {
+        MissingAggregationBuilder missingAggregationBuilder = AggregationBuilders.missing("value_missinig").field("age");
+        SearchResponse searchResponse = client.prepareSearch("demo").addAggregation(missingAggregationBuilder).execute().actionGet();
+        Missing missing = searchResponse.getAggregations().get("value_missinig");
+        System.out.println(missing.toString());
+    }
+
+    /**
+     * 集群信息查询
+     */
+    @Test
+    public void testManagerCluster() {
+        ClusterHealthResponse healths = client.admin().cluster().prepareHealth().get();
+        String clusterName = healths.getClusterName();
+        System.out.println("clusterName : " + clusterName);
+
+        int numberOfDataNodes = healths.getNumberOfDataNodes();
+        System.out.println("numberOfDataNodes : " + numberOfDataNodes);
+
+        for (ClusterIndexHealth health : healths.getIndices().values()) {
+            String index = health.getIndex();
+            int numberOfShards = health.getNumberOfShards();
+            int numberOfReplicas = health.getNumberOfReplicas();
+            ClusterHealthStatus status = health.getStatus();
+            System.out.println(status.toString());
+            System.out.printf("index= %s,numberOfShards=%s,numberOfReplicas=%s\n", index, numberOfShards, numberOfReplicas);
+        }
+    }
+}
 ```

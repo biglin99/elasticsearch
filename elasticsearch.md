@@ -1,7 +1,9 @@
 # 第一章 ElasticSearch入门篇
 
 ## 第一节 ElasticSearch概述
-##### 1.1ElasticSearch是一个基于Lucene的搜索服务器。它提供了一个分布式多用户能力的全文搜索引擎，基于RESTfulweb接口。ElasticSearch是用Java开发的，并作为Apache许可条款下的开放源码发布，是当前流行的企业级搜索引擎。设计用于云计算中，能够达到实时搜索，稳定，可靠，快速，安装使用方便。构建在全文检索开源软件Lucene之上的Elasticsearch，不仅能对海量规模的数据完成分布式索引与检索，还能提供数据聚合分析。据国际权威的数据库产品评测机构DBEngines的统计，在2016年1月，Elasticsearch已超过Solr等，成为排名第一的搜索引擎类应用
+### 1.1ElasticSearch
+
+是一个基于Lucene的搜索服务器。它提供了一个分布式多用户能力的全文搜索引擎，基于RESTfulweb接口。ElasticSearch是用Java开发的，并作为Apache许可条款下的开放源码发布，是当前流行的企业级搜索引擎。设计用于云计算中，能够达到实时搜索，稳定，可靠，快速，安装使用方便。构建在全文检索开源软件Lucene之上的Elasticsearch，不仅能对海量规模的数据完成分布式索引与检索，还能提供数据聚合分析。据国际权威的数据库产品评测机构DBEngines的统计，在2016年1月，Elasticsearch已超过Solr等，成为排名第一的搜索引擎类应用
 
 概括：基于Restful标准的高扩展高可用的实时数据分析的全文搜索工具
 ### 1.2ElasticSearch的基本概念
@@ -362,7 +364,9 @@ Elasticsearch 使用一种称为 倒排索引 的结构，它适用于快速的�
 倒排索引：
 
 Term      Doc_1  Doc_2
--------------------------
+
+-----
+
 Quick   |       |  X
 The     |   X   |
 brown   |   X   |  X
@@ -382,9 +386,12 @@ the     |   X   |
 搜索quick brown ：
 
 Term      Doc_1  Doc_2
+
 -------------------------
+
 brown   |   X   |  X
 quick   |   X   |
+
 ------------------------
 Total   |   2   |  1
 
@@ -404,6 +411,7 @@ jumped 和 leap, 尽管没有相同的词根，但他们的意思很相近。他
 建立倒排索引的时候，会对拆分出的各个单词进行相应的处理，以提升后面搜索的时候能够搜索到相关联的文档的概率
 
 Term      Doc_1  Doc_2
+
 -------------------------
 brown   |   X   |  X
 dog     |   X   |  X
